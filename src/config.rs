@@ -9,14 +9,15 @@ use crate::{
 
 #[derive(Debug)]
 pub struct TargetEndpointsForChain {
-    // TODO: add a static reference to Chain here
+    chain: &'static Chain,
     http: Vec<HttpTargetEndpoint>,
     web_socket: Vec<WebSocketTargetEndpoint>,
 }
 
 impl TargetEndpointsForChain {
-    pub fn new() -> Self {
+    pub fn new(chain: &'static Chain) -> Self {
         TargetEndpointsForChain {
+            chain,
             http: vec![],
             web_socket: vec![],
         }
@@ -30,7 +31,7 @@ impl TargetEndpointsForChain {
     }
 }
 
-type ChainsToEndpoints = HashMap<Chain, TargetEndpointsForChain>;
+type ChainsToEndpoints = HashMap<&'static Chain, TargetEndpointsForChain>;
 
 #[derive(Constructor, Debug)]
 pub struct Config {
@@ -46,15 +47,14 @@ fn get_chains_to_endpoints(target_endpoints: Vec<TargetEndpoint>) -> ChainsToEnd
     let mut chains_to_endpoints: ChainsToEndpoints = HashMap::new();
 
     target_endpoints.into_iter().for_each(|endpoint| {
-        let chain = &endpoint.chain;
+        let chain: &'static Chain = endpoint.chain;
 
         match chains_to_endpoints.get_mut(chain) {
             Some(v) => {
                 v.add(endpoint);
             }
             None => {
-                let mut target_endpoints = TargetEndpointsForChain::new();
-                let chain = chain.clone();
+                let mut target_endpoints = TargetEndpointsForChain::new(chain);
                 target_endpoints.add(endpoint);
                 chains_to_endpoints.insert(chain, target_endpoints);
             }
@@ -89,41 +89,41 @@ mod test {
     #[test]
     fn test1() {
         let mut x = 0;
-        let chains = [0; 10].map(|_| {
+        let chains: [&'static Chain; 10] = [0; 10].map(|_| {
             x += 1;
-            Chain::new(format!("Chain{x}"), Duration::from_secs(12), x.into())
+            Chain::new(format!("Chain{x}"), Duration::from_secs(12), x.into()).leak()
         });
 
         // TODO: the names should be enforced unique, via a struct UniqueString
 
         let base_endpoints = vec![
             TargetEndpointBase {
-                chain: chains[0].clone(),
+                chain: chains[0],
                 name: "My First Endpoint".to_string(),
                 url: Secret::new(Url::parse("https://something1.com").unwrap().into()),
             },
             TargetEndpointBase {
-                chain: chains[0].clone(),
+                chain: chains[0],
                 name: "My Second Endpoint".to_string(),
                 url: Secret::new(Url::parse("https://something2.com").unwrap().into()),
             },
             TargetEndpointBase {
-                chain: chains[0].clone(),
+                chain: chains[0],
                 name: "My Third Endpoint".to_string(),
                 url: Secret::new(Url::parse("https://something3.com").unwrap().into()),
             },
             TargetEndpointBase {
-                chain: chains[1].clone(),
+                chain: chains[1],
                 name: "My Fourth Endpoint".to_string(),
                 url: Secret::new(Url::parse("https://something4.com").unwrap().into()),
             },
             TargetEndpointBase {
-                chain: chains[1].clone(),
+                chain: chains[1],
                 name: "My Fifth Endpoint".to_string(),
                 url: Secret::new(Url::parse("ws://something5.com").unwrap().into()),
             },
             TargetEndpointBase {
-                chain: chains[1].clone(),
+                chain: chains[1],
                 name: "My Sixth Endpoint".to_string(),
                 url: Secret::new(Url::parse("wss://something6.com").unwrap().into()),
             },

@@ -17,3 +17,9 @@ pub struct Chain {
     block_time: Duration,
     chain_id: ChainId,
 }
+
+impl Chain {
+    pub fn leak(self) -> &'static Self {
+        Box::leak(Box::new(self))
+    }
+}

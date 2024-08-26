@@ -10,7 +10,7 @@ use crate::chain::Chain;
 #[derive(Clone, Debug)]
 pub struct TargetEndpointBase {
     pub name: String,
-    pub chain: Chain,
+    pub chain: &'static Chain,
     pub url: Secret<ZeroizableUrl>,
 }
 
