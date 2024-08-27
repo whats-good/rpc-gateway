@@ -1,29 +1,52 @@
 use std::ops::Deref;
 
-use derive_more::derive::Constructor;
-use secrecy::{CloneableSecret, DebugSecret, ExposeSecret, Secret};
+use thiserror::Error;
 use url::Url;
-use zeroize::Zeroize;
 
 use crate::chain::Chain;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TargetEndpointBase {
     pub name: String,
     pub chain: &'static Chain,
-    pub url: Secret<ZeroizableUrl>,
+    pub url: Url, // TODO: make this a secret
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct HttpTargetEndpoint(TargetEndpointBase);
 
-#[derive(Debug)]
+impl TryFrom<TargetEndpointBase> for HttpTargetEndpoint {
+    type Error = InitTargetEndpointError;
+
+    fn try_from(value: TargetEndpointBase) -> Result<Self, Self::Error> {
+        let scheme = value.url.scheme();
+        match scheme {
+            "http" | "https" => Ok(HttpTargetEndpoint(value)),
+            _ => Err(InitTargetEndpointError::WrongScheme),
+        }
+    }
+}
+
+#[derive(Error, Debug)]
 pub enum InitTargetEndpointError {
+    #[error("wrong scheme")]
     WrongScheme,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct WebSocketTargetEndpoint(TargetEndpointBase);
+
+impl TryFrom<TargetEndpointBase> for WebSocketTargetEndpoint {
+    type Error = InitTargetEndpointError;
+
+    fn try_from(value: TargetEndpointBase) -> Result<Self, Self::Error> {
+        let scheme = value.url.scheme();
+        match scheme {
+            "ws" | "wss" => Ok(WebSocketTargetEndpoint(value)),
+            _ => Err(InitTargetEndpointError::WrongScheme),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum TargetEndpoint {
@@ -31,39 +54,14 @@ pub enum TargetEndpoint {
     WebSocket(WebSocketTargetEndpoint),
 }
 
-#[derive(Constructor, Clone)]
-pub struct ZeroizableUrl(Url);
-
-impl Zeroize for ZeroizableUrl {
-    fn zeroize(&mut self) {
-        // TODO: implement
-    }
-}
-
-impl From<Url> for ZeroizableUrl {
-    fn from(value: Url) -> Self {
-        ZeroizableUrl(value)
-    }
-}
-
-impl CloneableSecret for ZeroizableUrl {}
-impl DebugSecret for ZeroizableUrl {}
-impl Deref for ZeroizableUrl {
-    type Target = Url;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl TryInto<TargetEndpoint> for TargetEndpointBase {
+impl TryFrom<TargetEndpointBase> for TargetEndpoint {
     type Error = InitTargetEndpointError;
 
-    fn try_into(self) -> Result<TargetEndpoint, Self::Error> {
-        let scheme = self.url.expose_secret().scheme();
+    fn try_from(value: TargetEndpointBase) -> Result<Self, Self::Error> {
+        let scheme = value.url.scheme();
         match scheme {
-            "http" | "https" => Ok(TargetEndpoint::Http(HttpTargetEndpoint(self))),
-            "ws" | "wss" => Ok(TargetEndpoint::WebSocket(WebSocketTargetEndpoint(self))),
+            "http" | "https" => HttpTargetEndpoint::try_from(value).map(TargetEndpoint::Http),
+            "ws" | "wss" => WebSocketTargetEndpoint::try_from(value).map(TargetEndpoint::WebSocket),
             _ => Err(InitTargetEndpointError::WrongScheme),
         }
     }
