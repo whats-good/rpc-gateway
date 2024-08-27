@@ -1,0 +1,14 @@
+chains = [
+    { chain_id = 1, block_time = 12 },
+    { chain_id = 8453, block_time = 2 },
+    { chain_id = 11155111, block_time = 12 },
+    { chain_id = 84532, block_time = 2 },
+]
+
+target_endpoints = [
+    { name = "first_endpoint", url = "http://localhost:8080", chain_id = 1 },
+    { name = "second_endpoint", url = "http://localhost:8081", chain_id = 1 },
+    { name = "third_endpoint", url = "http://localhost:8082", chain_id = 8453 },
+    { name = "fourth_endpoint", url = "http://localhost:8083", chain_id = 84532 },
+    { name = "fifth_endpoint", url = "ws://localhost:8084", chain_id = 84532 },
+]
