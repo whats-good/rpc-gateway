@@ -1,8 +1,9 @@
 use std::time::Duration;
 
 use derive_more::derive::Constructor;
+use serde::Deserialize;
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug, Deserialize)]
 pub struct ChainId(u64);
 
 impl From<u64> for ChainId {
@@ -11,11 +12,10 @@ impl From<u64> for ChainId {
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Constructor, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Constructor, Debug, Deserialize)]
 pub struct Chain {
-    name: String,
-    block_time: Duration,
-    chain_id: ChainId,
+    pub block_time: Option<Duration>,
+    pub chain_id: ChainId,
 }
 
 impl Chain {
