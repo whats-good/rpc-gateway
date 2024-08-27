@@ -1,3 +1,3 @@
 pub mod chain;
-pub mod config;
+pub mod settings;
 pub mod target_endpoint;
