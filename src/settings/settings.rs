@@ -1,5 +1,5 @@
 use crate::{
-    chain::Chain,
+    chain::{Chain, ChainId},
     target_endpoint::{HttpTargetEndpoint, TargetEndpoint, WebSocketTargetEndpoint},
 };
 use std::{
@@ -10,8 +10,8 @@ use std::{
 #[derive(Debug, PartialEq, Eq)]
 pub struct TargetEndpointsForChain {
     pub chain: &'static Chain,
-    pub http: Vec<HttpTargetEndpoint>,
-    pub web_socket: Vec<WebSocketTargetEndpoint>,
+    pub http: Vec<HttpTargetEndpoint>, // TODO: turn this into a struct and have it handle request cycling
+    pub web_socket: Vec<WebSocketTargetEndpoint>, // TODO: todo turn this into a struct and have it handle request cycling
 }
 
 impl TargetEndpointsForChain {
@@ -31,7 +31,7 @@ impl TargetEndpointsForChain {
     }
 }
 
-type ChainsToEndpointsInner = HashMap<&'static Chain, TargetEndpointsForChain>;
+type ChainsToEndpointsInner = HashMap<ChainId, TargetEndpointsForChain>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ChainsToEndpoints(ChainsToEndpointsInner);
@@ -63,14 +63,14 @@ impl From<Vec<TargetEndpoint>> for ChainsToEndpoints {
         value.into_iter().for_each(|endpoint| {
             let chain: &'static Chain = endpoint.chain;
 
-            match chains_to_endpoints_inner.get_mut(chain) {
+            match chains_to_endpoints_inner.get_mut(&chain.chain_id) {
                 Some(v) => {
                     v.add(endpoint);
                 }
                 None => {
                     let mut target_endpoints = TargetEndpointsForChain::new(chain);
                     target_endpoints.add(endpoint);
-                    chains_to_endpoints_inner.insert(chain, target_endpoints);
+                    chains_to_endpoints_inner.insert(chain.chain_id, target_endpoints);
                 }
             };
         });
@@ -85,7 +85,11 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn leak(self) -> &'static Settings {
+    pub fn new(chains_to_targets: ChainsToEndpoints) -> Self {
+        Self { chains_to_targets }
+    }
+
+    pub fn leak(self) -> &'static Self {
         Box::leak(Box::new(self))
     }
 }
@@ -157,10 +161,7 @@ mod test {
     #[test]
     fn should_correctly_categorize_http_and_https() {
         let settings: &'static Settings = &TEST_SETTINGS;
-        let first_chain_targets = settings
-            .chains_to_targets
-            .get(&CHAIN_ONE as &Chain)
-            .unwrap();
+        let first_chain_targets = settings.chains_to_targets.get(&CHAIN_ONE.chain_id).unwrap();
 
         assert_eq!(
             first_chain_targets.http.len(),
@@ -168,10 +169,7 @@ mod test {
             "first chain target http length does not match"
         );
 
-        let second_chain_targets = settings
-            .chains_to_targets
-            .get(&CHAIN_TWO as &Chain)
-            .unwrap();
+        let second_chain_targets = settings.chains_to_targets.get(&CHAIN_TWO.chain_id).unwrap();
 
         assert_eq!(
             second_chain_targets.http.len(),
@@ -183,10 +181,7 @@ mod test {
     #[test]
     fn should_correctly_categorize_ws_and_wss() {
         let settings: &'static Settings = &TEST_SETTINGS;
-        let first_chain_targets = settings
-            .chains_to_targets
-            .get(&CHAIN_ONE as &Chain)
-            .unwrap();
+        let first_chain_targets = settings.chains_to_targets.get(&CHAIN_ONE.chain_id).unwrap();
 
         assert_eq!(
             first_chain_targets.web_socket.len(),
@@ -194,10 +189,7 @@ mod test {
             "first chain target websocket length does not match"
         );
 
-        let second_chain_targets = settings
-            .chains_to_targets
-            .get(&CHAIN_TWO as &Chain)
-            .unwrap();
+        let second_chain_targets = settings.chains_to_targets.get(&CHAIN_TWO.chain_id).unwrap();
 
         assert_eq!(
             second_chain_targets.web_socket.len(),

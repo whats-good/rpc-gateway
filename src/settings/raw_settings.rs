@@ -5,7 +5,10 @@ use crate::{
 };
 use config::{Config, ConfigError, File};
 use serde::Deserialize;
-use std::{collections::HashMap, time::Duration};
+use std::{
+    collections::{HashMap, HashSet},
+    time::Duration,
+};
 use thiserror::Error;
 use url::{ParseError, Url};
 
@@ -34,12 +37,13 @@ pub struct RawTargetEndpoint {
 impl RawTargetEndpoint {
     pub fn try_into_target_endpoint(
         self,
-        chains_map: &HashMap<ChainId, &'static Chain>,
+        chains_map: &mut HashMap<ChainId, &'static Chain>,
     ) -> Result<TargetEndpoint, SettingsError> {
         let chain_id: ChainId = self.chain_id.into();
-        let chain: &'static Chain = chains_map
-            .get(&chain_id)
-            .ok_or(SettingsError::NonExistentChain(chain_id))?;
+        let new_chain: Chain = chain_id.into();
+        let new_chain: &'static Chain = new_chain.leak();
+        let entry = chains_map.entry(chain_id).or_insert(new_chain);
+        let chain: &'static Chain = *entry;
         let url = Url::parse(&self.url)?;
         let target_endpoint_base = TargetEndpointBase {
             name: self.name,
@@ -52,13 +56,13 @@ impl RawTargetEndpoint {
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
-struct RawSettings {
-    chains: Vec<RawChain>,
+pub struct RawSettings {
+    chains: Option<Vec<RawChain>>,
     target_endpoints: Vec<RawTargetEndpoint>,
 }
 
 impl RawSettings {
-    fn from_config_file(path: &str) -> Result<Self, ConfigError> {
+    pub fn from_config_file(path: &str) -> Result<Self, ConfigError> {
         let s = Config::builder()
             .add_source(File::with_name(path))
             .build()?;
@@ -83,21 +87,25 @@ impl TryFrom<RawSettings> for Settings {
     type Error = SettingsError;
 
     fn try_from(value: RawSettings) -> Result<Self, Self::Error> {
-        let chains: Vec<Chain> = value.chains.into_iter().map(|c| c.into()).collect();
-        let chains: Vec<&'static Chain> = chains.into_iter().map(|c| c.leak()).collect();
-        let chains_map: HashMap<ChainId, &'static Chain> =
-            chains.into_iter().map(|c| (c.chain_id, c)).collect();
+        let mut chains_map: HashMap<ChainId, &'static Chain> = value
+            .chains
+            .unwrap_or(vec![])
+            .into_iter()
+            .map(|raw_chain| {
+                // TODO: log overwrites
+                let chain: Chain = raw_chain.into();
+                (chain.chain_id, chain.leak())
+            })
+            .collect();
 
-        // TODO: this might not be the best way to collect all validation issues
+        // // TODO: this might not be the best way to collect all validation issues
         let target_endpoints: Vec<TargetEndpoint> = value
             .target_endpoints
             .into_iter()
-            .map(|e| e.try_into_target_endpoint(&chains_map))
+            .map(|e| e.try_into_target_endpoint(&mut chains_map))
             .collect::<Result<Vec<_>, _>>()?;
 
-        Ok(Settings {
-            chains_to_targets: target_endpoints.into(),
-        })
+        Ok(Settings::new(target_endpoints.into()))
     }
 }
 
@@ -108,8 +116,9 @@ mod test {
     #[test]
     pub fn read_raw_settings_chains_from_toml() {
         let raw_settings = RawSettings::from_config_file("example_configs/example").unwrap();
+        let chains = raw_settings.chains.unwrap_or(vec![]);
         assert_eq!(
-            raw_settings.chains,
+            chains,
             vec![
                 RawChain {
                     block_time: Some(12),
@@ -245,7 +254,7 @@ mod test {
         //     (base_sepolia, expected_base_sepolia_targets),
         // ]));
 
-        let expected_settings = Settings { chains_to_targets };
+        let expected_settings = Settings::new(chains_to_targets);
 
         assert_eq!(actual_settings, expected_settings);
     }

@@ -27,6 +27,14 @@ impl TryFrom<TargetEndpointBase> for HttpTargetEndpoint {
     }
 }
 
+impl Deref for HttpTargetEndpoint {
+    type Target = TargetEndpointBase;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum InitTargetEndpointError {
     #[error("wrong scheme")]
