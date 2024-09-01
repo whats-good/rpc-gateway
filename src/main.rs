@@ -10,7 +10,7 @@ use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use tracing::{error, info, trace, warn};
 
 use rpc_gateway::{
-    http::http_handler,
+    http::HttpHandler,
     logging::setup_logging,
     settings::{RawSettings, Settings},
 };
@@ -39,7 +39,13 @@ async fn start_server_loop(settings: &'static Settings, cancellation_token: Canc
 
             tracker.spawn(async move {
                 http1::Builder::new()
-                    .serve_connection(io, service_fn(|req| http_handler(req, settings)))
+                    .serve_connection(
+                        io,
+                        service_fn(|req| {
+                            let http_handler = HttpHandler { req, settings };
+                            http_handler.handle()
+                        }),
+                    )
                     .await
                     .expect("Error serving connection");
             });
