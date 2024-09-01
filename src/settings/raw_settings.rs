@@ -5,10 +5,7 @@ use crate::{
 };
 use config::{Config, ConfigError, File};
 use serde::Deserialize;
-use std::{
-    collections::{HashMap, HashSet},
-    time::Duration,
-};
+use std::{collections::HashMap, time::Duration};
 use thiserror::Error;
 use url::{ParseError, Url};
 
