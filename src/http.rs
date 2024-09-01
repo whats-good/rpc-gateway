@@ -1,130 +1,20 @@
-use std::{num::ParseIntError, ops::Deref};
-
 use bytes::Bytes;
 use http_body_util::{combinators::BoxBody, BodyExt, Empty, Full};
 use hyper::{body::Incoming, Method, Request, Response, StatusCode};
 use regex::Regex;
-use serde::{Deserialize, Serialize};
+use std::num::ParseIntError;
 use thiserror::Error;
+use tracing::info;
 
 use crate::{
     chain::ChainId,
-    settings::{ChainsToEndpoints, Settings, TargetEndpointsForChain},
+    rpc::{
+        RpcInboundRequest, RpcInboundSuccessResponse, RpcOutboundErrorResponse, RpcOutboundRequest,
+        RpcOutboundResponse, RpcOutboundSuccessResponse, JSON_RPC_VERSION,
+    },
+    settings::{Settings, TargetEndpointsForChain},
     target_endpoint::HttpTargetEndpoint,
 };
-
-const JSON_RPC_VERSION: &'static str = "2.0";
-
-type RpcRequestId = u32; // TODO: is this an appropriate bound on the rpc id?
-
-#[derive(Deserialize, Debug, Serialize)]
-pub struct RpcInboundRequest {
-    id: RpcRequestId,
-    method: String,
-    params: Option<Vec<String>>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct RpcOutboundRequest(RpcInboundRequest);
-
-impl Deref for RpcOutboundRequest {
-    type Target = RpcInboundRequest;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-#[derive(Debug, Deserialize)]
-struct RpcInboundSuccessResponse {
-    result: String,
-    id: RpcRequestId,
-}
-
-#[derive(Debug, Deserialize)]
-struct RpcInboundErrorResponse {
-    error: String, // TODO: parse the error
-    id: RpcRequestId,
-}
-
-// TODO: use enum flattening
-// #[derive(Deserialize, Debug)]
-// enum RpcInboundResponse {
-//     success(RpcInboundResponseSuccess),
-
-//     error(RpcInboundResponseError),
-// }
-
-#[derive(Serialize, Debug)]
-pub struct RpcOutboundSuccessResponse {
-    result: String,
-    id: RpcRequestId,
-    jsonrpc: &'static str,
-}
-
-impl From<RpcInboundSuccessResponse> for RpcOutboundSuccessResponse {
-    fn from(value: RpcInboundSuccessResponse) -> Self {
-        RpcOutboundSuccessResponse {
-            id: value.id,
-            result: value.result,
-            jsonrpc: JSON_RPC_VERSION,
-        }
-    }
-}
-
-impl TryFrom<RpcOutboundSuccessResponse> for Bytes {
-    type Error = serde_json::Error;
-
-    fn try_from(value: RpcOutboundSuccessResponse) -> Result<Self, Self::Error> {
-        let string = serde_json::to_string(&value)?;
-        let bytes = Bytes::from(string);
-        Ok(bytes)
-    }
-}
-
-#[derive(Serialize, Debug)]
-pub struct RpcOutboundErrorResponse {
-    error: String,
-    id: RpcRequestId,
-    jsonrpc: &'static str, // TODO: see if we can avoid carrying this in the runtime, and only add it during serialization
-}
-
-impl From<RpcInboundErrorResponse> for RpcOutboundErrorResponse {
-    fn from(value: RpcInboundErrorResponse) -> Self {
-        RpcOutboundErrorResponse {
-            id: value.id,
-            error: value.error,
-            jsonrpc: JSON_RPC_VERSION,
-        }
-    }
-}
-
-impl TryFrom<RpcOutboundErrorResponse> for Bytes {
-    type Error = serde_json::Error;
-
-    fn try_from(value: RpcOutboundErrorResponse) -> Result<Self, Self::Error> {
-        let string = serde_json::to_string(&value)?;
-        let bytes = Bytes::from(string);
-        Ok(bytes)
-    }
-}
-
-#[derive(Debug)]
-pub enum RpcOutboundResponse {
-    Success(RpcOutboundSuccessResponse),
-    Error(RpcOutboundErrorResponse),
-}
-
-impl TryFrom<RpcOutboundResponse> for Bytes {
-    type Error = serde_json::Error;
-
-    fn try_from(value: RpcOutboundResponse) -> Result<Self, Self::Error> {
-        match value {
-            RpcOutboundResponse::Success(success_response) => success_response.try_into(),
-            RpcOutboundResponse::Error(error_response) => error_response.try_into(),
-        }
-    }
-}
 
 #[derive(Debug, Error)]
 pub enum HttpRelayError {
@@ -136,7 +26,6 @@ pub enum HttpRelayError {
 }
 
 impl HttpTargetEndpoint {
-    // TODO: this should not return a response. it should return a Result so we properly capture all failure modes
     pub async fn relay(
         &self,
         req: &RpcOutboundRequest,
@@ -147,20 +36,24 @@ impl HttpTargetEndpoint {
             .json(&req)
             .send()
             .await
-            .or(Err(HttpRelayError::HttpTransportError))?; // TODO: find the correct error mapping function here
+            .or(Err(HttpRelayError::HttpTransportError))?;
 
         let inbound_success_response = response
             .json::<RpcInboundSuccessResponse>()
             .await
-            .or(Err(HttpRelayError::ParsingError))?; // TODO: find the correct error mapping function here
+            .or(Err(HttpRelayError::ParsingError))?;
 
-        let outbound_success_response = inbound_success_response.into();
-        return Ok(RpcOutboundResponse::Success(outbound_success_response));
+        let outbound_success_response: RpcOutboundSuccessResponse = inbound_success_response.into();
+        return Ok(outbound_success_response.into());
     }
 }
 
 impl TargetEndpointsForChain {
     pub async fn http_relay(&self, inbound: RpcInboundRequest) -> RpcOutboundResponse {
+        info!(
+            "Relaying to http node for chain_id: {:?}",
+            self.chain.chain_id
+        );
         let outbound = RpcOutboundRequest(inbound);
         let mut errors = vec![];
         for endpoint in self.http.iter() {
@@ -171,11 +64,12 @@ impl TargetEndpointsForChain {
                 }
             }
         }
-        RpcOutboundResponse::Error(RpcOutboundErrorResponse {
+        RpcOutboundErrorResponse {
             id: outbound.id,
             error: String::from("no endpoints for chain"), // TODO: turn these into enums
             jsonrpc: JSON_RPC_VERSION,
-        })
+        }
+        .into()
     }
 }
 
@@ -188,10 +82,9 @@ enum PathToChainError {
     ParseError(#[from] ParseIntError),
 }
 
-// TODO: use something other than string for errors here
 // TODO: write unit test
 fn path_to_chain_id(path: &str) -> Result<ChainId, PathToChainError> {
-    let re = Regex::new(r"^/(\d+)$").unwrap(); // TODO: is this the best regex?
+    let re = Regex::new(r"^/(\d+)$").or(Err(PathToChainError::RegexError))?;
     let captures = re.captures(path).ok_or(PathToChainError::RegexError)?;
     let chain_id_match = captures.get(1).ok_or(PathToChainError::RegexError)?;
     let chain_id: ChainId = chain_id_match.as_str().parse::<u64>()?.into();
@@ -205,7 +98,7 @@ impl RpcInboundRequest {
             Ok(collected) => collected.to_bytes(),
             Err(_) => {
                 return Err(RpcOutboundErrorResponse {
-                    id: 0,                              // TODO: how should we response when the id can't be parsed?
+                    id: None,
                     error: String::from("parse error"), // TODO: turn these into enums
                     jsonrpc: JSON_RPC_VERSION, // TODO: turn this into a constructor and automatically append JSON_RPC_VERSION in there (or even better, skip it from the memory representation and only have in serialization)
                 });
@@ -216,7 +109,7 @@ impl RpcInboundRequest {
             Ok(x) => x,
             Err(_) => {
                 return Err(RpcOutboundErrorResponse {
-                    id: 0,                              // TODO: how should we response when the id can't be parsed?
+                    id: None,
                     error: String::from("parse error"), // TODO: turn these into enums
                     jsonrpc: JSON_RPC_VERSION,
                 });
@@ -226,9 +119,6 @@ impl RpcInboundRequest {
     }
 }
 
-// TODO: pull the .http_relay fn from TargetEndpointsForChain to here.
-impl ChainsToEndpoints {}
-
 async fn handle_chain_id_route(
     chain_id: ChainId,
     settings: &'static Settings,
@@ -237,17 +127,19 @@ async fn handle_chain_id_route(
     // TODO: could we do a ? operator on the RpcErrorResponse object as if it's a result over RpcOutboundResponse?
     let inbound = match RpcInboundRequest::try_from_async(req).await {
         Ok(inbound) => inbound,
-        Err(err) => return RpcOutboundResponse::Error(err),
+        Err(err) => return err.into(),
     };
 
     match settings.chains_to_targets.get(&chain_id) {
         Some(target_endpoints_for_chain) => target_endpoints_for_chain.http_relay(inbound).await,
         None => {
-            RpcOutboundResponse::Error(RpcOutboundErrorResponse {
+            // TODO: consolidate these "no target endpoints found" errors in one place, because it needs to be reused under the lower struct too
+            RpcOutboundErrorResponse {
                 id: inbound.id,
                 error: String::from("settings error: no target endpoints for chain id"), // TODO: turn these into enums
                 jsonrpc: JSON_RPC_VERSION,
-            })
+            }
+            .into()
         }
     }
 }
