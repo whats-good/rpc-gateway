@@ -1,14 +1,14 @@
-chains = [
-    { chain_id = 1, block_time = 12 },
-    { chain_id = 8453, block_time = 2 },
-    { chain_id = 11155111, block_time = 12 },
-    { chain_id = 84532, block_time = 2 },
-]
+[chains]
+1 = { block_time = 12 }
+8453 = { block_time = 2 }
+11155111 = {}             # block_time is optional
+# chain_id = 84532 is not defined in [chains] but is defined in [target_endpoints], so it will be added to the list of chain_ids as an unconfigured chain
 
-target_endpoints = [
-    { name = "first_endpoint", url = "http://localhost:8080", chain_id = 1 },
-    { name = "second_endpoint", url = "http://localhost:8081", chain_id = 1 },
-    { name = "third_endpoint", url = "http://localhost:8082", chain_id = 8453 },
-    { name = "fourth_endpoint", url = "http://localhost:8083", chain_id = 84532 },
-    { name = "fifth_endpoint", url = "ws://localhost:8084", chain_id = 84532 },
-]
+# TODO: add timeouts to general config, and optionally to individual endpoints
+
+[target_endpoints]
+first_endpoint = { url = "http://localhost:8080", chain_id = 1 }
+second_endpoint = { url = "http://localhost:8081", chain_id = 1 }
+third_endpoint = { url = "http://localhost:8082", chain_id = 8453 }
+fourth_endpoint = { url = "http://localhost:8083", chain_id = 84532 }
+fifth_endpoint = { url = "ws://localhost:8084", chain_id = 84532 }

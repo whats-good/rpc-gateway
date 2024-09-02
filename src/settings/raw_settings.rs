@@ -11,22 +11,11 @@ use url::{ParseError, Url};
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 struct RawChain {
-    chain_id: u64,
     block_time: Option<u64>,
-}
-
-impl From<RawChain> for Chain {
-    fn from(value: RawChain) -> Self {
-        Chain::new(
-            value.chain_id.into(),
-            value.block_time.map(Duration::from_secs),
-        )
-    }
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct RawTargetEndpoint {
-    name: String,
     chain_id: u64,
     url: String, // TODO: should this be URL instead?
 }
@@ -34,6 +23,7 @@ pub struct RawTargetEndpoint {
 impl RawTargetEndpoint {
     pub fn try_into_target_endpoint(
         self,
+        name: String,
         chains_map: &mut HashMap<ChainId, &'static Chain>,
     ) -> Result<TargetEndpoint, SettingsError> {
         let chain_id: ChainId = self.chain_id.into();
@@ -42,11 +32,7 @@ impl RawTargetEndpoint {
         let entry = chains_map.entry(chain_id).or_insert(new_chain);
         let chain: &'static Chain = *entry;
         let url = Url::parse(&self.url)?;
-        let target_endpoint_base = TargetEndpointBase {
-            name: self.name,
-            chain,
-            url,
-        };
+        let target_endpoint_base = TargetEndpointBase { name, chain, url };
         let target_endpoint: TargetEndpoint = target_endpoint_base.try_into()?;
         Ok(target_endpoint)
     }
@@ -54,8 +40,8 @@ impl RawTargetEndpoint {
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
 pub struct RawSettings {
-    chains: Option<Vec<RawChain>>,
-    target_endpoints: Vec<RawTargetEndpoint>,
+    chains: Option<HashMap<u64, RawChain>>,
+    target_endpoints: HashMap<String, RawTargetEndpoint>,
 }
 
 impl RawSettings {
@@ -86,11 +72,14 @@ impl TryFrom<RawSettings> for Settings {
     fn try_from(value: RawSettings) -> Result<Self, Self::Error> {
         let mut chains_map: HashMap<ChainId, &'static Chain> = value
             .chains
-            .unwrap_or(vec![])
+            .unwrap_or_default()
             .into_iter()
-            .map(|raw_chain| {
+            .map(|(raw_chain_id, raw_chain)| {
                 // TODO: log overwrites
-                let chain: Chain = raw_chain.into();
+                let chain = Chain {
+                    chain_id: raw_chain_id.into(),
+                    block_time: raw_chain.block_time.map(Duration::from_secs),
+                };
                 (chain.chain_id, chain.leak())
             })
             .collect();
@@ -99,7 +88,9 @@ impl TryFrom<RawSettings> for Settings {
         let target_endpoints: Vec<TargetEndpoint> = value
             .target_endpoints
             .into_iter()
-            .map(|e| e.try_into_target_endpoint(&mut chains_map))
+            .map(|(name, raw_endpoint)| {
+                raw_endpoint.try_into_target_endpoint(name, &mut chains_map)
+            })
             .collect::<Result<Vec<_>, _>>()?;
 
         Ok(Settings::new(target_endpoints.into()))
@@ -113,64 +104,80 @@ mod test {
     #[test]
     pub fn read_raw_settings_chains_from_toml() {
         let raw_settings = RawSettings::from_config_file("example_configs/example").unwrap();
-        let chains = raw_settings.chains.unwrap_or(vec![]);
-        assert_eq!(
-            chains,
-            vec![
+        let actual = raw_settings.chains.unwrap();
+        let expected = [
+            (
+                1,
                 RawChain {
                     block_time: Some(12),
-                    chain_id: 1,
                 },
+            ),
+            (
+                8453,
                 RawChain {
-                    chain_id: 8453,
-                    block_time: Some(2)
+                    block_time: Some(2),
                 },
+            ),
+            (
+                11155111,
                 RawChain {
-                    chain_id: 11155111,
-                    block_time: Some(12)
+                    block_time: Some(12),
                 },
+            ),
+            (
+                84532,
                 RawChain {
-                    chain_id: 84532,
-                    block_time: Some(2)
+                    block_time: Some(2),
                 },
-            ],
-        );
+            ),
+        ];
+        assert_eq!(actual, expected.into(),);
     }
 
     #[test]
     pub fn read_raw_settings_target_endpoints_from_toml() {
-        let raw_settings = RawSettings::from_config_file("example_configs/example").unwrap();
-
-        assert_eq!(
-            raw_settings.target_endpoints,
-            vec![
+        let actual = RawSettings::from_config_file("example_configs/example")
+            .unwrap()
+            .target_endpoints;
+        let expected = [
+            (
+                "first_endpoint".to_string(),
                 RawTargetEndpoint {
-                    name: "first_endpoint".to_string(),
                     url: "http://localhost:8080".to_string(),
                     chain_id: 1,
                 },
+            ),
+            (
+                "second_endpoint".to_string(),
                 RawTargetEndpoint {
-                    name: "second_endpoint".to_string(),
                     url: "http://localhost:8081".to_string(),
                     chain_id: 1,
                 },
+            ),
+            (
+                "third_endpoint".to_string(),
                 RawTargetEndpoint {
-                    name: "third_endpoint".to_string(),
                     url: "http://localhost:8082".to_string(),
                     chain_id: 8453,
                 },
+            ),
+            (
+                "fourth_endpoint".to_string(),
                 RawTargetEndpoint {
-                    name: "fourth_endpoint".to_string(),
                     url: "http://localhost:8083".to_string(),
-                    chain_id: 84532
+                    chain_id: 84532,
                 },
+            ),
+            (
+                "fifth_endpoint".to_string(),
                 RawTargetEndpoint {
-                    name: "fifth_endpoint".to_string(),
                     url: "ws://localhost:8084".to_string(),
-                    chain_id: 84532
+                    chain_id: 84532,
                 },
-            ]
-        );
+            ),
+        ]
+        .into();
+        assert_eq!(actual, expected);
     }
 
     #[test]
