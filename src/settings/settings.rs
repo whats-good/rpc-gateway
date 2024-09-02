@@ -4,14 +4,15 @@ use crate::{
 };
 use std::{
     collections::HashMap,
+    fmt::Debug,
     ops::{Deref, DerefMut},
 };
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct TargetEndpointsForChain {
     pub chain: &'static Chain,
-    pub http: Vec<HttpTargetEndpoint>, // TODO: turn this into a struct and have it handle request cycling
-    pub web_socket: Vec<WebSocketTargetEndpoint>, // TODO: todo turn this into a struct and have it handle request cycling
+    pub http: Vec<HttpTargetEndpoint>,
+    pub web_socket: Vec<WebSocketTargetEndpoint>,
 }
 
 impl TargetEndpointsForChain {
@@ -79,7 +80,7 @@ impl From<Vec<TargetEndpoint>> for ChainsToEndpoints {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct Settings {
     pub chains_to_targets: ChainsToEndpoints,
 }
