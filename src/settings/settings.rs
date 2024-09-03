@@ -12,7 +12,7 @@ use std::{
 pub struct TargetEndpointsForChain {
     pub chain: &'static Chain,
     pub http: Vec<HttpTargetEndpoint>,
-    pub web_socket: Vec<WebSocketTargetEndpoint>,
+    pub ws: Vec<WebSocketTargetEndpoint>,
 }
 
 impl TargetEndpointsForChain {
@@ -20,14 +20,14 @@ impl TargetEndpointsForChain {
         TargetEndpointsForChain {
             chain,
             http: vec![],
-            web_socket: vec![],
+            ws: vec![],
         }
     }
 
     pub fn add(&mut self, endpoint: TargetEndpoint) {
         match endpoint {
             TargetEndpoint::Http(endpoint) => self.http.push(endpoint),
-            TargetEndpoint::WebSocket(endpoint) => self.web_socket.push(endpoint),
+            TargetEndpoint::WebSocket(endpoint) => self.ws.push(endpoint),
         };
     }
 }
@@ -185,7 +185,7 @@ mod test {
         let first_chain_targets = settings.chains_to_targets.get(&CHAIN_ONE.chain_id).unwrap();
 
         assert_eq!(
-            first_chain_targets.web_socket.len(),
+            first_chain_targets.ws.len(),
             0,
             "first chain target websocket length does not match"
         );
@@ -193,7 +193,7 @@ mod test {
         let second_chain_targets = settings.chains_to_targets.get(&CHAIN_TWO.chain_id).unwrap();
 
         assert_eq!(
-            second_chain_targets.web_socket.len(),
+            second_chain_targets.ws.len(),
             2,
             "second chain target websocket length does not match"
         );
