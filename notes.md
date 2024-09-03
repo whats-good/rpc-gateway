@@ -3,3 +3,4 @@
 - TODO: should we listen to siguser1 or siguser2 to do things like resetting the config? or should we just use sighup for that?
 - TODO: since i'm explicitly listening for sigint sigterm etc, am i unintentionally overriding existing graceful shutdown mechanisms for other libraries such as hyperim or tracing?
 - TODO: look into whether the req/res Bytes conversions are necessary, especially right after serialization
+- TODO: what's a good naming convention for spans? plain english? snake case?

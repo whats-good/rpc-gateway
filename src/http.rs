@@ -1,22 +1,24 @@
+use std::time::Duration;
+
 use bytes::Bytes;
 use http_body_util::{combinators::BoxBody, BodyExt, Empty, Full};
 use hyper::{body::Incoming, Method, Request, Response, StatusCode};
 use regex::Regex;
 use thiserror::Error;
-use tracing::info;
+use tracing::{error, info, instrument};
 
 use crate::{
     chain::ChainId,
     rpc::{
         RpcInboundRequest, RpcInboundResponse, RpcOutboundErrorPayload, RpcOutboundErrorResponse,
         RpcOutboundRequest, RpcOutboundResponse, RpcRequestId, StaticRpcOutboundErrorPayload,
-        INVALID_REQUEST, JSON_RPC_VERSION, PARSE_ERROR, TARGETS_NOT_CONFIGURED,
+        INTERNAL_ERROR, INVALID_REQUEST, JSON_RPC_VERSION, PARSE_ERROR, TARGETS_NOT_CONFIGURED,
     },
     settings::{Settings, TargetEndpointsForChain},
     target_endpoint::HttpTargetEndpoint,
 };
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Clone, Copy)]
 pub enum HttpRelayError {
     #[error("Http relay transport error")]
     TransportError,
@@ -26,24 +28,37 @@ pub enum HttpRelayError {
 }
 
 impl HttpTargetEndpoint {
+    // TODO: why do some logs appear out of order?
+    #[instrument(ret)]
     pub async fn relay(
         &self,
         req: &RpcOutboundRequest,
     ) -> Result<RpcInboundResponse, HttpRelayError> {
+        tokio::time::sleep(Duration::from_secs(35)).await;
         let client = reqwest::Client::new(); // TODO: is it safe to pass the client around? can we reuse it? can we keep tcp sockets alive if we share the client around?
-        let response = client
+        let response = match client
             .post(self.url.clone()) // TODO: why do we have to clone the url here?
             .json(&req)
             .send()
             .await
-            .or(Err(HttpRelayError::TransportError))?;
+        {
+            Ok(response) => response,
+            Err(err) => {
+                error!(?err, "Http relay error");
+                return Err(HttpRelayError::TransportError);
+            }
+        };
 
-        let inbound_response = response
-            .json::<RpcInboundResponse>()
-            .await
-            .or(Err(HttpRelayError::InboundResponseParsingError))?;
+        let parsed_inbound = match response.json::<RpcInboundResponse>().await {
+            Ok(parsed_inbound) => parsed_inbound,
+            Err(err) => {
+                // TODO: turn this into a macro, it's too verbose.
+                error!(?err, "Could not parse the inbound");
+                return Err(HttpRelayError::InboundResponseParsingError);
+            }
+        };
 
-        Ok(inbound_response)
+        Ok(parsed_inbound)
     }
 }
 
@@ -51,6 +66,9 @@ impl HttpTargetEndpoint {
 enum RpcOutboundErrorKind {
     #[error("Targets not configured for chain")]
     TargetsNotConfigured(ChainId),
+
+    #[error("Failed to establish a connection with all endpoints")]
+    HttpRelay(#[from] HttpRelayError),
 }
 
 pub struct RpcOutboundError {
@@ -62,6 +80,7 @@ impl From<RpcOutboundError> for StaticRpcOutboundErrorPayload {
     fn from(value: RpcOutboundError) -> Self {
         match value.kind {
             RpcOutboundErrorKind::TargetsNotConfigured(_) => TARGETS_NOT_CONFIGURED,
+            RpcOutboundErrorKind::HttpRelay(_) => INTERNAL_ERROR,
         }
     }
 }
@@ -77,29 +96,45 @@ impl Into<RpcOutboundResponse> for RpcOutboundError {
 }
 
 impl TargetEndpointsForChain {
+    #[instrument]
+    async fn relay_loop(
+        &self,
+        outbound: &RpcOutboundRequest,
+    ) -> Result<RpcInboundResponse, Option<HttpRelayError>> {
+        let mut error: Option<HttpRelayError> = None;
+
+        for endpoint in self.http.iter() {
+            let relay_result = endpoint.relay(&outbound).await;
+            match relay_result {
+                // TODO: configure a setting that allows relaying the request to another endpoint even if its a valid error response
+                Ok(response) => return Ok(response),
+                Err(e) if error.is_none() => {
+                    error = Some(e);
+                }
+                _ => {}
+            }
+        }
+
+        Err(error)
+    }
+
+    #[instrument]
     pub async fn http_relay(
         &self,
         inbound: RpcInboundRequest,
     ) -> Result<RpcOutboundResponse, RpcOutboundError> {
-        info!(
-            "Relaying to http node for chain_id: {:?}",
-            self.chain.chain_id
-        );
-        let outbound = RpcOutboundRequest(inbound);
-        let mut errors = vec![];
-        for endpoint in self.http.iter() {
-            match endpoint.relay(&outbound).await {
-                // TODO: configure a setting that allows relaying the request to another endpoint if its a valid error response
-                Ok(response) => return Ok(response.into()),
-                Err(e) => {
-                    errors.push(e);
-                }
-            }
+        let outbound_request = RpcOutboundRequest(inbound);
+        match self.relay_loop(&outbound_request).await {
+            Ok(inbound_response) => Ok(inbound_response.into()),
+            Err(Some(error)) => Err(RpcOutboundError {
+                kind: RpcOutboundErrorKind::HttpRelay(error),
+                request_id: outbound_request.id,
+            }),
+            Err(None) => Err(RpcOutboundError {
+                kind: RpcOutboundErrorKind::TargetsNotConfigured(self.chain.chain_id),
+                request_id: outbound_request.id,
+            }),
         }
-        Err(RpcOutboundError {
-            kind: RpcOutboundErrorKind::TargetsNotConfigured(self.chain.chain_id),
-            request_id: outbound.id,
-        })
     }
 }
 
