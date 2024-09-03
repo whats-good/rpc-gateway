@@ -34,7 +34,6 @@ impl HttpTargetEndpoint {
         &self,
         req: &RpcOutboundRequest,
     ) -> Result<RpcInboundResponse, HttpRelayError> {
-        tokio::time::sleep(Duration::from_secs(35)).await;
         let client = reqwest::Client::new(); // TODO: is it safe to pass the client around? can we reuse it? can we keep tcp sockets alive if we share the client around?
         let response = match client
             .post(self.url.clone()) // TODO: why do we have to clone the url here?
