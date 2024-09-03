@@ -119,7 +119,13 @@ pub const INVALID_REQUEST: StaticRpcOutboundErrorPayload = StaticRpcOutboundErro
     message: "Invalid request",
 };
 
+pub const INTERNAL_ERROR: StaticRpcOutboundErrorPayload = StaticRpcOutboundErrorPayload {
+    code: -32_603,
+    message: "Internal error",
+};
+
 // TODO: document these custom errors
+// TODO: should this just be an INTERNAL_ERROR? Or Resource not found? Or Resource unavailable?
 pub const TARGETS_NOT_CONFIGURED: StaticRpcOutboundErrorPayload = StaticRpcOutboundErrorPayload {
     code: -33_000,
     message: "Targets not configured",

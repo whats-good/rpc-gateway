@@ -7,22 +7,20 @@ use tokio::{
     time::sleep,
 };
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
-use tracing::{error, info, trace, warn};
+use tracing::{error, event, info, instrument, trace, warn, Level};
 
 use rpc_gateway::{
     http::HttpHandler,
-    logging::setup_logging,
     settings::{RawSettings, Settings},
+    tracing::init_tracing,
 };
 
 // TODO: handle the cases where the client closes the socket unexpectedly. don't panic when that happens.
-// TODO: where should i put the cancellation token? inside the loop, around the loop? around the function?
-async fn start_server_loop(settings: &'static Settings, cancellation_token: CancellationToken) {
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-    info!("Server is listening at: {addr}");
-    let listener = TcpListener::bind(addr)
-        .await
-        .expect("Could not attach to the port.");
+async fn start_server_loop(
+    settings: &'static Settings,
+    listener: TcpListener,
+    cancellation_token: CancellationToken,
+) {
     let tracker = TaskTracker::new();
     let server = async {
         loop {
@@ -102,24 +100,28 @@ impl ShutdownSignals {
     }
 }
 
+#[instrument]
 fn get_settings() -> &'static Settings {
     let settings: Settings = RawSettings::from_config_file("config.toml")
         .unwrap()
         .try_into()
         .unwrap();
+
+    event!(Level::INFO, ?settings, "Booting");
     settings.leak()
 }
 
-const GRACEFUL_SHUTDOWN_TIMEOUT: u64 = 5_000;
+const GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS: u64 = 5;
 
+#[instrument]
 async fn graceful_shutdown(server_task_tracker: TaskTracker) -> i32 {
     warn!(
         "Attempting graceful shutdown. Timeout is set to: {} ms.",
-        GRACEFUL_SHUTDOWN_TIMEOUT
+        GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS
     );
 
     let code = tokio::select! {
-        _ = sleep(Duration::from_millis(GRACEFUL_SHUTDOWN_TIMEOUT)) => {
+        _ = sleep(Duration::from_millis(GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS)) => {
             error!("Could not gracefully shutdown the server.");
             1
         },
@@ -131,17 +133,39 @@ async fn graceful_shutdown(server_task_tracker: TaskTracker) -> i32 {
     code
 }
 
+// TODO: turn these functions into a self-contained struct
+// struct GatewayServer {
+//     settings: &'static Settings,
+//     cancellation_token: CancellationToken,
+// }
+
+// impl GatewayServer {
+//     pub fn new(settings: &'static Settings) -> Self {
+//         Self {
+//             settings,
+//             cancellation_token: CancellationToken::new(),
+//         }
+//     }
+// }
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    init_tracing();
+
     let settings = get_settings();
-    setup_logging();
 
     let token = CancellationToken::new();
-
     ShutdownSignals::spawn(token.clone());
 
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    info!("Server is listening at: {addr}");
+    let listener = TcpListener::bind(addr).await.map_err(|err| {
+        error!("Could not bind to tcp socket. {:#?}", err);
+        err
+    })?;
+
     let server_task_tracker = TaskTracker::new();
-    server_task_tracker.spawn(start_server_loop(settings, token.clone()));
+    server_task_tracker.spawn(start_server_loop(settings, listener, token.clone()));
     server_task_tracker.close();
 
     tokio::select! {
