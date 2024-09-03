@@ -11,6 +11,13 @@ futures = "0.3.30"
 http-body-util = "0.1.2"
 hyper = { version = "1.4.1", features = ["full"] }
 hyper-util = { version = "0.1.7", features = ["tokio"] }
+opentelemetry = "0.24"
+opentelemetry-otlp = { version = "0.17.0", features = [
+    "grpc-tonic",
+    "gzip-tonic",
+] }
+opentelemetry-stdout = { version = "0.5.0", features = ["trace"] }
+opentelemetry_sdk = { version = "0.24.0", features = ["rt-tokio"] }
 regex = "1.10.6"
 reqwest = { version = "0.12.7", features = ["json"] }
 serde = { version = "1.0.209", features = ["derive"] }
@@ -25,18 +32,20 @@ tokio = { version = "1.39.3", features = [
 ] }
 tokio-util = { version = "0.7.11", features = ["rt"] }
 tracing = "0.1.40"
-tracing-bunyan-formatter = "0.3.9"
+tracing-futures = { version = "0.2.5", features = [
+    "futures",
+    "tokio",
+    "tokio-executor",
+] }
+tracing-opentelemetry = "0.25.0"
 
-tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
+tracing-subscriber = { version = "0.3.18", features = [
+    "env-filter",
+    "json",
+    "valuable",
+    "valuable-serde",
+] }
 url = "2.5.2"
 
 [dev-dependencies]
 lazy_static = "1.5.0"
-
-# maybe later:
-# fastrand = "2.1.1"
-# tracing-futures = { version = "0.2.5", features = [
-#     # "futures",
-#     # "tokio",
-#     # "tokio-executor",
-# ] }
