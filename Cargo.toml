@@ -7,9 +7,14 @@ edition = "2021"
 anyhow = "1.0.86"
 bytes = "1.7.1"
 config = "0.14.0"
+fastrand = "2.1.1"
+# fastwebsockets = "0.8.0" TODO: can we use this instead?
 futures = "0.3.30"
+futures-util = "0.3.30"
 http-body-util = "0.1.2"
-hyper = { version = "1.4.1", features = ["full"] }
+hyper = { version = "1.4.1", features = [
+    "full",
+] } # TODO: does this need to be full?
 hyper-util = { version = "0.1.7", features = ["tokio"] }
 opentelemetry = "0.24"
 opentelemetry-otlp = { version = "0.17.0", features = [
@@ -30,6 +35,7 @@ tokio = { version = "1.39.3", features = [
     "io-util",
     "signal",
 ] }
+tokio-tungstenite = "0.23.1"
 tokio-util = { version = "0.7.11", features = ["rt"] }
 tracing = "0.1.40"
 tracing-futures = { version = "0.2.5", features = [
@@ -45,6 +51,7 @@ tracing-subscriber = { version = "0.3.18", features = [
     "valuable",
     "valuable-serde",
 ] }
+tungstenite = "0.24.0"
 url = "2.5.2"
 
 [dev-dependencies]
