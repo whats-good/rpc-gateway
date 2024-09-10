@@ -23,7 +23,7 @@ async fn start_server_loop(
 ) {
     // TODO: how does this server respond to tcp pings?
     let tracker = TaskTracker::new();
-    let server = async {
+    let tcp_listener_loop = async {
         // TODO: why is the server future's type impl Future<Output = !> ? is there a todo! somewhere?
         loop {
             let stream = match listener.accept().await {
@@ -54,13 +54,22 @@ async fn start_server_loop(
 
     tokio::select! {
         biased; // prioritize the shutdown signals
-
         _ = cancellation_token.cancelled() => {
-            tracker.close(); // TODO: is this correct to use here?
-            tracker.wait().await;
-            info!("Responded to all ongoing http requests during shutdown.")
+            warn!("Received shutdown signal");
         }
-        _ = server => {}
+        _ = tcp_listener_loop => {
+            error!("Tcp Stream listener loop halted unexpectedly");
+        }
+    }
+
+    tokio::select! {
+        biased; // prioritize timeout
+        _ = tokio::time::sleep(Duration::from_secs(15)) => {
+            error!("Could not complete graceful shutdown before timeout.");
+        },
+        _ = tracker.wait() => {
+            info!("Successfully completed graceful shutdown.");
+        }
     }
 }
 

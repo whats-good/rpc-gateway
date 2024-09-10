@@ -138,27 +138,30 @@ impl TargetEndpointsForChain {
 }
 
 #[derive(Error, Debug)]
-enum InboundRpcError {
+enum InboundHttpRpcError {
     #[error("Hyper bytes collect error")]
     HyperBytes(#[from] hyper::Error),
 
-    #[error("Serialization error")]
-    Serialization(#[from] serde_json::Error),
+    #[error("Deserialization error")]
+    Deserialization(#[from] serde_json::Error),
 
     #[error("Route format error")]
     RouteFormat,
 }
 
-impl Into<StaticRpcOutboundErrorPayload> for InboundRpcError {
+// TODO: why not From?
+impl Into<StaticRpcOutboundErrorPayload> for InboundHttpRpcError {
     fn into(self) -> StaticRpcOutboundErrorPayload {
         match self {
-            InboundRpcError::RouteFormat | InboundRpcError::HyperBytes(_) => INVALID_REQUEST,
-            InboundRpcError::Serialization(_) => PARSE_ERROR,
+            InboundHttpRpcError::RouteFormat | InboundHttpRpcError::HyperBytes(_) => {
+                INVALID_REQUEST
+            }
+            InboundHttpRpcError::Deserialization(_) => PARSE_ERROR,
         }
     }
 }
 
-impl Into<RpcOutboundErrorResponse> for InboundRpcError {
+impl Into<RpcOutboundErrorResponse> for InboundHttpRpcError {
     fn into(self) -> RpcOutboundErrorResponse {
         RpcOutboundErrorResponse {
             error: RpcOutboundErrorPayload::Static(self.into()),
@@ -168,7 +171,7 @@ impl Into<RpcOutboundErrorResponse> for InboundRpcError {
     }
 }
 
-impl Into<RpcOutboundResponse> for InboundRpcError {
+impl Into<RpcOutboundResponse> for InboundHttpRpcError {
     fn into(self) -> RpcOutboundResponse {
         let err_response: RpcOutboundErrorResponse = self.into();
         err_response.into()
@@ -176,7 +179,7 @@ impl Into<RpcOutboundResponse> for InboundRpcError {
 }
 
 impl RpcInboundRequest {
-    async fn try_from_async(value: Request<Incoming>) -> Result<Self, InboundRpcError> {
+    async fn try_from_async(value: Request<Incoming>) -> Result<Self, InboundHttpRpcError> {
         let body_bytes = value.collect().await?;
         let inbound: RpcInboundRequest = serde_json::from_slice(&body_bytes.to_bytes().to_vec())?;
         return Ok(inbound);
@@ -233,14 +236,14 @@ impl HttpHandler {
         response
     }
 
-    fn path_to_chain_id(path: &str) -> Result<ChainId, InboundRpcError> {
+    fn path_to_chain_id(path: &str) -> Result<ChainId, InboundHttpRpcError> {
         let re = Regex::new(r"^/(\d+)$").unwrap();
-        let captures = re.captures(path).ok_or(InboundRpcError::RouteFormat)?;
-        let chain_id_match = captures.get(1).ok_or(InboundRpcError::RouteFormat)?;
+        let captures = re.captures(path).ok_or(InboundHttpRpcError::RouteFormat)?;
+        let chain_id_match = captures.get(1).ok_or(InboundHttpRpcError::RouteFormat)?;
         let chain_id: ChainId = chain_id_match
             .as_str()
             .parse::<u64>()
-            .map_err(|_| InboundRpcError::RouteFormat)?
+            .map_err(|_| InboundHttpRpcError::RouteFormat)?
             .into();
         info!("request received for {chain_id:?}");
         Ok(chain_id)

@@ -1,21 +1,100 @@
-use std::ops::Deref;
+use std::{collections::HashMap, fmt::Debug, num::ParseIntError, ops::Deref, sync::Arc};
 
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 pub const JSON_RPC_VERSION: &'static str = "2.0";
 
 pub type RpcRequestId = Option<u32>; // TODO: is this an appropriate bound on the rpc id?
 
-#[derive(Deserialize, Debug, Serialize)]
+#[derive(Deserialize, Debug, Serialize, Clone)]
 pub struct RpcInboundRequest {
     pub id: RpcRequestId, // TODO: write tests for empty id and null ids
     pub method: String,
     pub params: Option<Vec<String>>,
 }
 
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SubscriptionKind {
+    NewHeads,
+
+    NewPendingTransactions,
+}
+
+#[derive(Debug, Clone)]
+pub struct RpcInboundSubscriptionRequest {
+    pub request: RpcInboundRequest,
+    pub kind: SubscriptionKind,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct RpcInboundSubscriptionPayloadResponseParams {
+    pub result: Value, // TODO: is there a way to take the whole map as just a string?
+}
+
+#[derive(Deserialize, Debug)]
+pub struct RpcInboundSubscriptionPayloadResponse {
+    pub params: RpcInboundSubscriptionPayloadResponseParams,
+}
+
+#[derive(PartialEq, Eq, Hash, Clone, Serialize)]
+pub struct SubscriptionId(u128);
+
+impl Deref for SubscriptionId {
+    type Target = u128;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Debug for SubscriptionId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // f.debug_tuple("SubscriptionId").field(&self.0).finish()
+        f.pad(&format!("{:#034X?}", self.0))
+    }
+}
+
+impl From<SubscriptionId> for String {
+    fn from(value: SubscriptionId) -> Self {
+        format!("{:#034X?}", value).to_lowercase() // TODO: is this good?
+                                                   // TODO: is there a better way to produce the lowercase hex string?
+    }
+}
+
+impl TryFrom<&str> for SubscriptionId {
+    type Error = ParseIntError;
+
+    fn try_from(value: &str) -> std::result::Result<Self, Self::Error> {
+        let hex_str = value.strip_prefix("0x").unwrap_or(value);
+        let id = u128::from_str_radix(hex_str, 16)?;
+        Ok(Self(id))
+    }
+}
+
+impl SubscriptionId {
+    pub fn rand() -> Self {
+        Self(fastrand::u128(0..u128::MAX))
+    }
+}
+
+#[derive(Serialize, Debug)]
+pub struct RpcOutboundSubscriptionPayloadResponseParams {
+    pub result: Value, // TODO: is there a way to take the whole map as just a string?
+    pub subscription: String,
+}
+
+#[derive(Serialize)]
+pub struct RpcOutboundSubscriptionPayloadResponse {
+    pub jsonrpc: &'static str,
+    pub method: String, // TODO: this too should be static str
+    pub params: RpcOutboundSubscriptionPayloadResponseParams,
+}
+
 #[derive(Debug, Serialize)]
-pub struct RpcOutboundRequest(pub RpcInboundRequest);
+pub struct RpcOutboundRequest(pub RpcInboundRequest); // TODO: this should be an enum.
 
 impl Deref for RpcOutboundRequest {
     type Target = RpcInboundRequest;

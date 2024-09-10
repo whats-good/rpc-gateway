@@ -41,7 +41,8 @@ pub enum InitTargetEndpointError {
     WrongScheme,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+// TODO: remove Clone, make all of this ARC
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct WebSocketTargetEndpoint(TargetEndpointBase);
 
 impl TryFrom<TargetEndpointBase> for WebSocketTargetEndpoint {
@@ -53,6 +54,14 @@ impl TryFrom<TargetEndpointBase> for WebSocketTargetEndpoint {
             "ws" | "wss" => Ok(WebSocketTargetEndpoint(value)),
             _ => Err(InitTargetEndpointError::WrongScheme),
         }
+    }
+}
+
+impl Deref for WebSocketTargetEndpoint {
+    type Target = TargetEndpointBase;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 

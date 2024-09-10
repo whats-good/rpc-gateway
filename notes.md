@@ -9,3 +9,6 @@
   (Broadcasting a payload will `Clone` it each and every single time.)
 - TODO: look into DashSets instead of HashSets for performant concurrent hash sets. keys are shared into lock groups, so if 2 unrelated locks come into the same hashset, they won't block for no reason.
 - TODO: System allocator -> jemalloc (jemalloc is suppose to be faster for multithreaded programs because it uses per-thread arenas which reduces contention for memory allocation. That sounds good to me, so let's change our allocator to jemalloc.) (https://arc.net/l/quote/yxriimmz)
+- TODO: look into Box`ing your messages before passing them down in a channel (https://www.reddit.com/r/rust/comments/lpzjzu/does_anyone_know_the_overhead_involved_in_sending/)
+- TODO: use bounded channels when possible, because unbounded channels are "a memory leak waiting to happen"
+- TODO: if you have 2 actors talking to each other in a cycle, you may have deadlocks. try avoiding cycles. you can also avoid backpressure if possible. try_send can help you kill an actor when there's no space on the receiver.

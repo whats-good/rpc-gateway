@@ -35,7 +35,10 @@ tokio = { version = "1.39.3", features = [
     "io-util",
     "signal",
 ] }
-tokio-tungstenite = "0.23.1"
+tokio-stream = { version = "0.1.16", features = ["sync"] }
+tokio-tungstenite = { version = "0.23.1", features = [
+    "native-tls",
+] } # TODO: find the appropriate tls handler
 tokio-util = { version = "0.7.11", features = ["rt"] }
 tracing = "0.1.40"
 tracing-futures = { version = "0.2.5", features = [
@@ -51,7 +54,6 @@ tracing-subscriber = { version = "0.3.18", features = [
     "valuable",
     "valuable-serde",
 ] }
-tungstenite = "0.24.0"
 url = "2.5.2"
 
 [dev-dependencies]

@@ -1666,13 +1666,13 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tokio 1.39.3",
+ "tokio-stream",
  "tokio-tungstenite",
  "tokio-util",
  "tracing",
  "tracing-futures",
  "tracing-opentelemetry",
  "tracing-subscriber",
- "tungstenite 0.24.0",
  "url",
 ]
 
@@ -2225,13 +2225,14 @@ dependencies = [
 
 [[package]]
 name = "tokio-stream"
-version = "0.1.14"
+version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "397c988d37662c7dda6d2208364a706264bf3d6138b11d436cbac0ad38832842"
+checksum = "4f4e6ce100d0eb49a2734f8c0812bcd324cf357d21810932c5df6b96ef2b86f1"
 dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio 1.39.3",
+ "tokio-util",
 ]
 
 [[package]]
@@ -2295,8 +2296,10 @@ checksum = "c6989540ced10490aaf14e6bad2e3d33728a2813310a0c71d1574304c49631cd"
 dependencies = [
  "futures-util",
  "log",
+ "native-tls",
  "tokio 1.39.3",
- "tungstenite 0.23.0",
+ "tokio-native-tls",
+ "tungstenite",
 ]
 
 [[package]]
@@ -2571,24 +2574,7 @@ dependencies = [
  "http",
  "httparse",
  "log",
- "rand",
- "sha1",
- "thiserror",
- "utf-8",
-]
-
-[[package]]
-name = "tungstenite"
-version = "0.24.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18e5b8366ee7a95b16d32197d0b2604b43a0be89dc5fac9f8e96ccafbaedda8a"
-dependencies = [
- "byteorder",
- "bytes 1.7.1",
- "data-encoding",
- "http",
- "httparse",
- "log",
+ "native-tls",
  "rand",
  "sha1",
  "thiserror",
