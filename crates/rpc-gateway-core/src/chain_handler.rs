@@ -8,7 +8,7 @@ use anvil_rpc::response::{ResponseResult, RpcResponse};
 use dashmap::DashMap;
 use futures::FutureExt;
 use futures::future::Shared;
-use metrics::{Label, counter, gauge, histogram};
+use metrics::{Label, counter, histogram};
 use rpc_gateway_cache::cache::RpcCache;
 use rpc_gateway_config::{
     CannedResponseConfig, ChainConfig, ProjectConfig, RequestCoalescingConfig,
@@ -115,21 +115,7 @@ impl ChainHandler {
 
         let start_time = std::time::Instant::now();
 
-        // TODO: get the project config from the span
-        gauge!("in_flight_requests",
-          "rpc_method" => call.method.clone(),
-          "chain_id" => chain_id.clone(),
-          "gateway_project" => project_config.name.clone(),
-        )
-        .increment(1);
         let chain_handler_response = self.on_request(&call, project_config).await;
-
-        gauge!("in_flight_requests",
-          "rpc_method" => call.method.clone(),
-          "chain_id" => chain_id.clone(),
-          "gateway_project" => project_config.name.clone(),
-        )
-        .decrement(1);
 
         debug!(
           chain_id = chain_id,
@@ -226,28 +212,12 @@ impl ChainHandler {
             let in_flight_requests = self.in_flight_requests.clone();
 
             match self.in_flight_requests.entry(coalescing_key.clone()) {
-                dashmap::Entry::Occupied(e) => {
-                    gauge!("coalesced_requests_in_flight",
-                      "chain_id" => chain_id.clone(),
-                      "rpc_method" => rpc_method.clone(),
-                      "gateway_project" => project_name.clone(),
-                    )
-                    .increment(1);
-
-                    (e.get().clone(), true)
-                }
+                dashmap::Entry::Occupied(e) => (e.get().clone(), true),
                 dashmap::Entry::Vacant(e) => {
                     // TODO: consider reusing the cache key here.
                     let inner_fut = cache_then_upstream(request_pool, cache, raw_call, req)
                         .boxed()
                         .shared();
-                    gauge!("coalesced_requests_cache_size",
-                      "chain_id" => chain_id.clone(),
-                      "rpc_method" => rpc_method.clone(),
-                      "gateway_project" => project_name.clone(),
-                    )
-                    .increment(1);
-
                     let timeout_duration = Duration::from_millis(500); // TODO: make this configurable
 
                     let inner_fut_for_removal = inner_fut.clone();
@@ -273,14 +243,6 @@ impl ChainHandler {
                             did_complete = ?did_complete,
                             "removing coalesced request future"
                         );
-                        gauge!(
-                            "coalesced_requests_cache_size",
-                            "chain_id" => chain_id,
-                            "rpc_method" => rpc_method,
-                            "gateway_project" => project_name,
-                        )
-                        .decrement(1);
-
                         in_flight_requests.remove(&coalescing_key_for_removal);
                     });
 
@@ -296,13 +258,6 @@ impl ChainHandler {
 
         if coalesced {
             debug!(?coalescing_key, "coalescing complete");
-
-            gauge!("coalesced_requests_in_flight",
-              "chain_id" => chain_id,
-              "rpc_method" => rpc_method,
-              "gateway_project" => project_name,
-            )
-            .decrement(1);
 
             return ChainHandlerResponse {
                 response_source: ChainHandlerResponseSource::Coalesced,
