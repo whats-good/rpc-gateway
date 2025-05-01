@@ -155,6 +155,11 @@ dev: ## Start development server with file watching. Usage: make dev CONFIG=path
 	@mkdir -p logs
 	watchexec -e rs -r cargo run --bin rpc-gateway -- -c $(if $(CONFIG),$(CONFIG),$(PWD)/example.config.yml)
 
+.PHONY: udeps
+udeps: ## Find unused dependencies.
+	@echo "Running udeps..."
+	cargo +nightly udeps --all-targets --all-features --workspace
+
 loadtest:
 	@echo "Running load test..."
 	@mkdir -p loadtest-reports

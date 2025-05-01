@@ -15,10 +15,8 @@ alloy-dyn-abi.workspace = true
 alloy-eips.workspace = true
 alloy-primitives.workspace = true
 anvil-core = { git = "https://github.com/whats-good/foundry", package = "anvil-core", rev = "b2bdf5ee58387021fe2048d47ea696bffaf44ffd" }
-anvil-rpc = { git = "https://github.com/whats-good/foundry", package = "anvil-rpc", rev = "b2bdf5ee58387021fe2048d47ea696bffaf44ffd" }
 arc-swap.workspace = true
 futures.workspace = true
-metrics.workspace = true
 moka.workspace = true
 rand.workspace = true
 redis = { version = "0.30.0", features = ["tokio-comp", "cluster-async"] }

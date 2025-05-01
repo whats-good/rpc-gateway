@@ -15,8 +15,6 @@ alloy-primitives.workspace = true
 duration-str.workspace = true
 nonempty.workspace = true
 serde.workspace = true
-serde_json.workspace = true
-simd-json.workspace = true
 serde_yaml.workspace = true
 url.workspace = true
 

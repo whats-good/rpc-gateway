@@ -134,6 +134,9 @@ impl Gateway {
 
         let project_config = &gateway_request.project_config;
 
+        // TODO: track actual incoming requests, and tag them by batch or single
+        // separate metrics by inbound vs outbound.
+
         match (gateway_request.req, is_authorized) {
             (Request::Single(call), true) => chain_handler
                 .handle_call(call, project_config)
