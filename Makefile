@@ -153,7 +153,7 @@ dev: ## Start development server with file watching. Usage: make dev CONFIG=path
 	@echo "----------------------------------------"
 	@echo "Starting server..."
 	@mkdir -p logs
-	watchexec -e rs -r cargo run --bin rpc-gateway -- -c $(if $(CONFIG),$(CONFIG),$(PWD)/example.config.yml)
+	MALLOC_CONF="prof:true,prof_active:true,lg_prof_interval:24,lg_prof_sample:17" watchexec -e rs -r cargo run --bin rpc-gateway -- -c $(if $(CONFIG),$(CONFIG),$(PWD)/example.config.yml)
 
 .PHONY: udeps
 udeps: ## Find unused dependencies.
@@ -185,6 +185,12 @@ check: ## Run all checks.
 lint: ## Run all linting checks.
 	@echo "Running linting checks..."
 	cargo clippy --workspace
+
+.PHONY: flatten-rust
+flatten-rust: ## Flatten all Rust source files into a single file for LLM analysis.
+	@echo "Flattening Rust source files..."
+	./scripts/flatten_rust.py
+	@echo "Flattened Rust files saved to flattened_rust.txt"
 
 ##@ help
 # Show help
