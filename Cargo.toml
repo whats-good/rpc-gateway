@@ -39,11 +39,15 @@ tracing = "0.1"
 tracing-appender = { version = "0.2.1" }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 url = "2.5"
+
 alloy-chains = "0.2.0"
-alloy-primitives = { version = "0.8.22" }
-alloy-eips = "0.12.6"
-alloy-rpc-types = { version = "0.12.1", default-features = true }
-alloy-serde = { version = "0.12.1" }
+alloy-primitives = { version = "1.1.0", default-features = false, features = [
+  "serde",
+] }
+alloy-eips = "0.15.7"
+alloy-rpc-types = "0.15.7"
+alloy-serde = "0.15.7"
+
 rpc-gateway-config = { path = "crates/rpc-gateway-config" }
 rpc-gateway-cache = { path = "crates/rpc-gateway-cache" }
 rpc-gateway-eth = { path = "crates/rpc-gateway-eth" }
