@@ -1,8 +1,11 @@
 //! custom serde helper functions
+use alloy_primitives::U256;
+use serde::{Deserialize, Deserializer};
+use std::str::FromStr;
 
 pub mod sequence {
     use serde::{
-        de::DeserializeOwned, ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer,
+        Deserialize, Deserializer, Serialize, Serializer, de::DeserializeOwned, ser::SerializeSeq,
     };
 
     pub fn serialize<S, T>(val: &T, s: S) -> Result<S::Ok, S::Error>
@@ -114,4 +117,49 @@ pub mod lenient_block_number {
             }
         }
     }
+}
+
+/// Helper type to parse both `u64` and `U256`
+#[derive(Copy, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum Numeric {
+    /// A [U256] value.
+    U256(U256),
+    /// A `u64` value.
+    Num(u64),
+}
+
+impl From<Numeric> for U256 {
+    fn from(n: Numeric) -> Self {
+        match n {
+            Numeric::U256(n) => n,
+            Numeric::Num(n) => Self::from(n),
+        }
+    }
+}
+
+impl FromStr for Numeric {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Ok(val) = s.parse::<u128>() {
+            Ok(Self::U256(U256::from(val)))
+        } else if s.starts_with("0x") {
+            U256::from_str_radix(s, 16)
+                .map(Numeric::U256)
+                .map_err(|err| err.to_string())
+        } else {
+            U256::from_str(s)
+                .map(Numeric::U256)
+                .map_err(|err| err.to_string())
+        }
+    }
+}
+
+/// Deserializes a number from hex or int
+pub fn deserialize_number<'de, D>(deserializer: D) -> Result<U256, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Numeric::deserialize(deserializer).map(Into::into)
 }

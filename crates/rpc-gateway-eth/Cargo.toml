@@ -10,29 +10,10 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-alloy-dyn-abi.workspace = true
-alloy-eips.workspace = true
 alloy-primitives.workspace = true
-# TODO: remove anvil feature
-alloy-rpc-types = { workspace = true, features = ["anvil", "trace", "txpool"] }
-alloy-rlp.workspace = true
-alloy-trie.workspace = true
+alloy-rpc-types = { workspace = true }
 alloy-serde.workspace = true
-alloy-consensus.workspace = true
-alloy-network.workspace = true
-bytes.workspace = true
-serde_json.workspace = true
 serde.workspace = true
-op-alloy-consensus = { workspace = true, features = ["serde"] }
-revm.workspace = true
-rand = "0.8"                                                                    # TODO: update
-thiserror = "2"                                                                 # TODO: remove
-
-
-# TODO: are these foundry crates necessary?
-foundry-common = { git = "https://github.com/whats-good/foundry", package = "foundry-common", rev = "b2bdf5ee58387021fe2048d47ea696bffaf44ffd" }
-foundry-evm = { git = "https://github.com/whats-good/foundry", package = "foundry-evm", rev = "b2bdf5ee58387021fe2048d47ea696bffaf44ffd" }
-
 
 [lints]
 workspace = true
