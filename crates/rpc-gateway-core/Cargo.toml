@@ -53,12 +53,3 @@ path = "src/bin/main.rs"
 
 [lib]
 path = "src/lib.rs"
-
-[profile.dev]
-debug = true
-split-debuginfo = "packed"
-opt-level = 0
-debug-assertions = true
-overflow-checks = true
-incremental = true
-codegen-units = 256

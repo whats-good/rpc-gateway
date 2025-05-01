@@ -48,3 +48,17 @@ alloy-dyn-abi = "0.8.25"
 alloy-eips = "0.12.6"
 rpc-gateway-config = { path = "crates/rpc-gateway-config" }
 rpc-gateway-cache = { path = "crates/rpc-gateway-cache" }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+panic = "abort"
+
+[profile.dev]
+debug = true
+split-debuginfo = "packed"
+opt-level = 0
+debug-assertions = true
+overflow-checks = true
+incremental = true
+codegen-units = 256
