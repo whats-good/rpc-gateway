@@ -164,7 +164,7 @@ impl ChainHandler {
         )
         .increment(1);
 
-        let response_result = chain_handler_response.response_result.clone();
+        let response_result = chain_handler_response.response_result;
 
         let duration = start_time.elapsed();
         histogram!("method_call_latency_seconds",
