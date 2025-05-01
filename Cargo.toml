@@ -25,7 +25,7 @@ repository = "https://github.com/whats-good/rpc-gateway"
 
 [workspace.dependencies]
 arc-swap = "1.7.0"
-clap = { version = "4.4", features = ["derive"] }
+clap = { version = "4.5.37", features = ["derive"] }
 duration-str = "0.17.0"
 nonempty = "0.11.0"
 rand = "0.9.1"
