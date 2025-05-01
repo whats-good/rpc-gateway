@@ -1,9 +1,6 @@
 use crate::request_pool::{ChainRequestPool, RequestPoolError};
 use crate::upstream::UpstreamError;
 use alloy_primitives::hex;
-use anvil_rpc::error::RpcError;
-use anvil_rpc::request::{RpcCall, RpcMethodCall};
-use anvil_rpc::response::{ResponseResult, RpcResponse};
 use dashmap::DashMap;
 use futures::FutureExt;
 use futures::future::Shared;
@@ -13,6 +10,9 @@ use rpc_gateway_config::{
     CannedResponseConfig, ChainConfig, ProjectConfig, RequestCoalescingConfig,
 };
 use rpc_gateway_eth::eth::EthRequest;
+use rpc_gateway_rpc::error::RpcError;
+use rpc_gateway_rpc::request::{RpcCall, RpcMethodCall};
+use rpc_gateway_rpc::response::{ResponseResult, RpcResponse};
 use std::borrow::Cow;
 use std::future::Future;
 use std::pin::Pin;

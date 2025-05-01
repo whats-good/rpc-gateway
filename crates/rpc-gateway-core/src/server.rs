@@ -3,8 +3,8 @@ use crate::{
     gateway::{Gateway, GatewayRequest},
 };
 use actix_web::{App, HttpResponse, HttpServer, Result, web};
-use anvil_rpc::{self, error::RpcError, request::Request, response::Response};
 use rpc_gateway_config::{Config, ProjectConfig};
+use rpc_gateway_rpc::{error::RpcError, request::Request, response::Response};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::{info, instrument, warn};

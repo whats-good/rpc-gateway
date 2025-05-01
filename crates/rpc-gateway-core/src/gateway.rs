@@ -1,15 +1,15 @@
 use crate::{load_balancer, request_pool::ChainRequestPool, upstream::Upstream};
-use anvil_rpc::{
-    error::RpcError,
-    request::Request,
-    response::{Response, RpcResponse},
-};
 use futures::{
     FutureExt,
     future::{self, join_all},
 };
 use nonempty::NonEmpty;
 use rpc_gateway_config::{Config, ProjectConfig};
+use rpc_gateway_rpc::{
+    error::RpcError,
+    request::Request,
+    response::{Response, RpcResponse},
+};
 use std::{collections::HashMap, sync::Arc};
 use tracing::{debug, warn};
 
@@ -20,7 +20,7 @@ pub struct GatewayRequest {
     pub project_config: ProjectConfig,
     pub key: Option<String>,
     pub chain_id: u64,
-    pub req: anvil_rpc::request::Request,
+    pub req: rpc_gateway_rpc::request::Request,
 }
 
 impl GatewayRequest {

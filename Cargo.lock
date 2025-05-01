@@ -1106,15 +1106,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anvil-rpc"
-version = "1.1.0"
-source = "git+https://github.com/whats-good/foundry?rev=b2bdf5ee58387021fe2048d47ea696bffaf44ffd#b2bdf5ee58387021fe2048d47ea696bffaf44ffd"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "anyhow"
 version = "1.0.97"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5769,7 +5760,6 @@ dependencies = [
  "alloy-dyn-abi",
  "alloy-eips",
  "alloy-primitives 0.8.25",
- "anvil-rpc",
  "arc-swap",
  "clap",
  "dashmap",
@@ -5783,6 +5773,7 @@ dependencies = [
  "rpc-gateway-cache",
  "rpc-gateway-config",
  "rpc-gateway-eth",
+ "rpc-gateway-rpc",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -5816,6 +5807,14 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.12",
+]
+
+[[package]]
+name = "rpc-gateway-rpc"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

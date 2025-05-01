@@ -5,6 +5,7 @@ members = [
   "crates/rpc-gateway-config",
   "crates/rpc-gateway-core",
   "crates/rpc-gateway-eth",
+  "crates/rpc-gateway-rpc",
 ]
 resolver = "3"
 
@@ -63,6 +64,7 @@ op-alloy-rpc-types = "0.11.0"
 rpc-gateway-config = { path = "crates/rpc-gateway-config" }
 rpc-gateway-cache = { path = "crates/rpc-gateway-cache" }
 rpc-gateway-eth = { path = "crates/rpc-gateway-eth" }
+rpc-gateway-rpc = { path = "crates/rpc-gateway-rpc" }
 revm = { version = "19.4.0", default-features = false }
 [profile.release]
 opt-level = 3

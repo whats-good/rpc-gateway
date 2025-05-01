@@ -20,7 +20,6 @@ alloy-chains.workspace = true
 alloy-dyn-abi.workspace = true
 alloy-eips.workspace = true
 alloy-primitives.workspace = true
-anvil-rpc = { git = "https://github.com/whats-good/foundry", package = "anvil-rpc", rev = "b2bdf5ee58387021fe2048d47ea696bffaf44ffd" }
 arc-swap.workspace = true
 clap.workspace = true
 dashmap = "6.1.0"
@@ -35,6 +34,7 @@ reqwest.workspace = true
 rpc-gateway-config.workspace = true
 rpc-gateway-cache.workspace = true
 rpc-gateway-eth.workspace = true
+rpc-gateway-rpc.workspace = true
 serde_json.workspace = true
 serde_yaml.workspace = true
 serde.workspace = true
