@@ -4,6 +4,8 @@ members = [
   "crates/rpc-gateway-cache",
   "crates/rpc-gateway-config",
   "crates/rpc-gateway-core",
+  "crates/rpc-gateway-eth",
+  "crates/rpc-gateway-rpc",
 ]
 resolver = "3"
 
@@ -23,28 +25,44 @@ repository = "https://github.com/whats-good/rpc-gateway"
 
 [workspace.dependencies]
 arc-swap = "1.7.0"
-async-trait = "0.1.88"
-clap = { version = "4.4", features = ["derive"] }
+clap = { version = "4.5.37", features = ["derive"] }
 duration-str = "0.17.0"
-moka = { version = "0.12.10", features = ["future"] }
 nonempty = "0.11.0"
 rand = "0.9.1"
 futures = "0.3.31"
 reqwest = { version = "0.12.15", features = ["json"] }
-simd-json = { version = "0.15.1", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-serde_yaml = "0.9"
-metrics = "0.24.2"
 tokio = { version = "1.44.2", features = ["full"] }
 tokio-util = { version = "0.7.15", features = ["rt"] }
 tracing = "0.1"
 tracing-appender = { version = "0.2.1" }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 url = "2.5"
+
 alloy-chains = "0.2.0"
-alloy-primitives = "1.0.0"
-alloy-dyn-abi = "0.8.25"
-alloy-eips = "0.12.6"
+alloy-primitives = { version = "1.1.0", default-features = false, features = [
+  "serde",
+] }
+alloy-eips = "0.15.7"
+alloy-rpc-types = "0.15.7"
+alloy-serde = "0.15.7"
+
 rpc-gateway-config = { path = "crates/rpc-gateway-config" }
 rpc-gateway-cache = { path = "crates/rpc-gateway-cache" }
+rpc-gateway-eth = { path = "crates/rpc-gateway-eth" }
+rpc-gateway-rpc = { path = "crates/rpc-gateway-rpc" }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+panic = "abort"
+
+[profile.dev]
+debug = true
+split-debuginfo = "packed"
+opt-level = 0
+debug-assertions = true
+overflow-checks = true
+incremental = true
+codegen-units = 256

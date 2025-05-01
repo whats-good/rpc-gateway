@@ -2,10 +2,10 @@ use std::time::Duration;
 
 use alloy_chains::Chain;
 use alloy_primitives::U64;
-use anvil_rpc::response::{ResponseResult, RpcResponse};
 use rand::Rng;
 use reqwest::Client;
 use rpc_gateway_config::UpstreamConfig;
+use rpc_gateway_rpc::response::{ResponseResult, RpcResponse};
 use tracing::{debug, error, info, instrument, warn};
 
 #[derive(Debug)]

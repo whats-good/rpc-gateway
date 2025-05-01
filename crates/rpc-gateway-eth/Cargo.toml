@@ -1,5 +1,5 @@
 [package]
-name = "loadtest"
+name = "rpc-gateway-eth"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,10 +10,10 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-goose = "0.18.0"
-tokio.workspace = true
-serde_json.workspace = true
-rand.workspace = true
+alloy-primitives.workspace = true
+alloy-rpc-types = { workspace = true }
+alloy-serde.workspace = true
+serde.workspace = true
 
 [lints]
 workspace = true

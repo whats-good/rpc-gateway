@@ -74,7 +74,14 @@
 [ ] TODO: why is nothing showing up as coalescing anymore?
 [ ] TODO: analyze which specific eth_call requests are sent, to which contracts, and with what selectors.
 
-- Stop saving the request in the cache.
-- Use regular hashing for the cache, instead of serializing the request.
-- Use a more efficient hashing algorithm with better distribution properties
-- Use simd_json for everything.
+[ ] Stop saving the request in the cache.
+[ ] Use regular hashing for the cache, instead of serializing the request.
+[ ] Use a more efficient hashing algorithm with better distribution properties
+[ ] Use simd_json for everything.
+
+[ ] TODO: track "Failed to parse request body" count
+[ ] TODO: track response parsing errors
+[ ] TODO: track pre-upstream errors
+[ ] TODO: add "max inflight requests" to request coalescing config
+[ ] TODO: track proxy internal errors
+[ ] TODO: add ip tracking

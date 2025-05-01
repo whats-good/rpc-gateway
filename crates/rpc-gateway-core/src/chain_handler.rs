@@ -1,24 +1,23 @@
 use crate::request_pool::{ChainRequestPool, RequestPoolError};
 use crate::upstream::UpstreamError;
 use alloy_primitives::hex;
-use anvil_core::eth::EthRequest;
-use anvil_rpc::error::RpcError;
-use anvil_rpc::request::{RpcCall, RpcMethodCall};
-use anvil_rpc::response::{ResponseResult, RpcResponse};
 use dashmap::DashMap;
 use futures::FutureExt;
 use futures::future::Shared;
-use metrics::{Label, counter, gauge, histogram};
+use metrics::{Label, counter, histogram};
 use rpc_gateway_cache::cache::RpcCache;
 use rpc_gateway_config::{
     CannedResponseConfig, ChainConfig, ProjectConfig, RequestCoalescingConfig,
 };
+use rpc_gateway_eth::eth::EthRequest;
+use rpc_gateway_rpc::error::RpcError;
+use rpc_gateway_rpc::request::{RpcCall, RpcMethodCall};
+use rpc_gateway_rpc::response::{ResponseResult, RpcResponse};
 use std::borrow::Cow;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
-use std::time::Duration;
-use tracing::{debug, instrument, trace, warn};
+use tracing::{debug, error, instrument, warn};
 
 #[derive(Debug, Clone)]
 enum ChainHandlerResponseSource {
@@ -115,21 +114,7 @@ impl ChainHandler {
 
         let start_time = std::time::Instant::now();
 
-        // TODO: get the project config from the span
-        gauge!("in_flight_requests",
-          "rpc_method" => call.method.clone(),
-          "chain_id" => chain_id.clone(),
-          "gateway_project" => project_config.name.clone(),
-        )
-        .increment(1);
         let chain_handler_response = self.on_request(&call, project_config).await;
-
-        gauge!("in_flight_requests",
-          "rpc_method" => call.method.clone(),
-          "chain_id" => chain_id.clone(),
-          "gateway_project" => project_config.name.clone(),
-        )
-        .decrement(1);
 
         debug!(
           chain_id = chain_id,
@@ -164,7 +149,7 @@ impl ChainHandler {
         )
         .increment(1);
 
-        let response_result = chain_handler_response.response_result.clone();
+        let response_result = chain_handler_response.response_result;
 
         let duration = start_time.elapsed();
         histogram!("method_call_latency_seconds",
@@ -204,10 +189,8 @@ impl ChainHandler {
 
     async fn handle_request_with_coalescing(
         &self,
-        call: &RpcMethodCall,
         raw_call: serde_json::Value,
         req: Result<EthRequest, serde_json::Error>,
-        project_config: &ProjectConfig,
     ) -> ChainHandlerResponse {
         // TODO: is it safe to unwrap here?
         let coalescing_key = match &req {
@@ -215,76 +198,28 @@ impl ChainHandler {
             Err(_) => serde_json::to_string(&raw_call).unwrap(),
         };
 
-        let chain_id = self.chain_config.chain.id().to_string();
-        let rpc_method = call.method.clone();
-        let project_name = project_config.name.clone();
-
         let (outer_fut, coalesced) = {
             let request_pool = self.request_pool.clone();
             let raw_call = raw_call.clone();
             let cache = self.cache.clone();
             let in_flight_requests = self.in_flight_requests.clone();
 
-            match self.in_flight_requests.entry(coalescing_key.clone()) {
-                dashmap::Entry::Occupied(e) => {
-                    gauge!("coalesced_requests_in_flight",
-                      "chain_id" => chain_id.clone(),
-                      "rpc_method" => rpc_method.clone(),
-                      "gateway_project" => project_name.clone(),
-                    )
-                    .increment(1);
-
-                    (e.get().clone(), true)
-                }
+            match self.in_flight_requests.entry(coalescing_key) {
+                dashmap::Entry::Occupied(e) => (e.get().clone(), true),
                 dashmap::Entry::Vacant(e) => {
                     // TODO: consider reusing the cache key here.
                     let inner_fut = cache_then_upstream(request_pool, cache, raw_call, req)
                         .boxed()
                         .shared();
-                    gauge!("coalesced_requests_cache_size",
-                      "chain_id" => chain_id.clone(),
-                      "rpc_method" => rpc_method.clone(),
-                      "gateway_project" => project_name.clone(),
-                    )
-                    .increment(1);
 
-                    let timeout_duration = Duration::from_millis(500); // TODO: make this configurable
-
-                    let inner_fut_for_removal = inner_fut.clone();
-                    let coalescing_key_for_removal = coalescing_key.clone();
+                    let coalescing_key_for_removal = e.key().clone();
 
                     // TODO: consider capping the dashmap size
 
-                    let chain_id = chain_id.clone();
-
-                    let rpc_method = rpc_method.clone();
-                    let project_name = project_name.clone();
-                    let chain_id = chain_id.clone();
                     tokio::spawn(async move {
-                        let did_complete =
-                            match tokio::time::timeout(timeout_duration, inner_fut_for_removal)
-                                .await
-                            {
-                                Ok(_) => true,
-                                Err(_) => false,
-                            };
-                        trace!(
-                            ?coalescing_key_for_removal,
-                            did_complete = ?did_complete,
-                            "removing coalesced request future"
-                        );
-                        gauge!(
-                            "coalesced_requests_cache_size",
-                            "chain_id" => chain_id,
-                            "rpc_method" => rpc_method,
-                            "gateway_project" => project_name,
-                        )
-                        .decrement(1);
-
                         in_flight_requests.remove(&coalescing_key_for_removal);
                     });
 
-                    trace!(?coalescing_key, "storing coalesced request future");
                     e.insert(inner_fut.clone());
                     (inner_fut, false)
                 }
@@ -295,15 +230,6 @@ impl ChainHandler {
         let result = outer_fut.await;
 
         if coalesced {
-            debug!(?coalescing_key, "coalescing complete");
-
-            gauge!("coalesced_requests_in_flight",
-              "chain_id" => chain_id,
-              "rpc_method" => rpc_method,
-              "gateway_project" => project_name,
-            )
-            .decrement(1);
-
             return ChainHandlerResponse {
                 response_source: ChainHandlerResponseSource::Coalesced,
                 response_result: result.response_result,
@@ -385,8 +311,7 @@ impl ChainHandler {
         }
 
         if self.request_coalescing_config.should_coalesce(&call.method) {
-            self.handle_request_with_coalescing(&call, raw_call, req, project_config)
-                .await
+            self.handle_request_with_coalescing(raw_call, req).await
         } else {
             cache_then_upstream(self.request_pool.clone(), self.cache.clone(), raw_call, req).await
         }
@@ -427,7 +352,7 @@ async fn try_cache_read(cache: &Option<Arc<RpcCache>>, req: &EthRequest) -> Opti
         debug!(?req, "method is cacheable");
         if let Some(response) = cache.get(&req).await {
             debug!(?req, "cache hit");
-            return Some(ResponseResult::Success(response.res));
+            return Some(ResponseResult::Success(response));
         } else {
             debug!(?req, "cache miss");
         }
@@ -476,7 +401,7 @@ async fn forward_to_upstream(
     };
 
     // TODO: add better logging and fields for the error. also add metrics and counters.
-    warn!(?error, "request pool error");
+    error!(?error, "request pool error");
 
     response
 }
