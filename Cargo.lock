@@ -5752,7 +5752,6 @@ name = "rpc-gateway-config"
 version = "0.1.0"
 dependencies = [
  "alloy-chains 0.2.0",
- "alloy-primitives 0.8.25",
  "duration-str",
  "nonempty",
  "serde",

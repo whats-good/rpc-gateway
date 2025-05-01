@@ -11,7 +11,6 @@ repository.workspace = true
 
 [dependencies]
 alloy-chains.workspace = true
-alloy-primitives.workspace = true
 duration-str.workspace = true
 nonempty.workspace = true
 serde.workspace = true
