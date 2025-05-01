@@ -17,8 +17,7 @@ use std::borrow::Cow;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
-use std::time::Duration;
-use tracing::{debug, instrument, trace, warn};
+use tracing::{debug, error, instrument, warn};
 
 #[derive(Debug, Clone)]
 enum ChainHandlerResponseSource {
@@ -190,10 +189,8 @@ impl ChainHandler {
 
     async fn handle_request_with_coalescing(
         &self,
-        call: &RpcMethodCall,
         raw_call: serde_json::Value,
         req: Result<EthRequest, serde_json::Error>,
-        project_config: &ProjectConfig,
     ) -> ChainHandlerResponse {
         // TODO: is it safe to unwrap here?
         let coalescing_key = match &req {
@@ -201,52 +198,28 @@ impl ChainHandler {
             Err(_) => serde_json::to_string(&raw_call).unwrap(),
         };
 
-        let chain_id = self.chain_config.chain.id().to_string();
-        let rpc_method = call.method.clone();
-        let project_name = project_config.name.clone();
-
         let (outer_fut, coalesced) = {
             let request_pool = self.request_pool.clone();
             let raw_call = raw_call.clone();
             let cache = self.cache.clone();
             let in_flight_requests = self.in_flight_requests.clone();
 
-            match self.in_flight_requests.entry(coalescing_key.clone()) {
+            match self.in_flight_requests.entry(coalescing_key) {
                 dashmap::Entry::Occupied(e) => (e.get().clone(), true),
                 dashmap::Entry::Vacant(e) => {
                     // TODO: consider reusing the cache key here.
                     let inner_fut = cache_then_upstream(request_pool, cache, raw_call, req)
                         .boxed()
                         .shared();
-                    let timeout_duration = Duration::from_millis(500); // TODO: make this configurable
 
-                    let inner_fut_for_removal = inner_fut.clone();
-                    let coalescing_key_for_removal = coalescing_key.clone();
+                    let coalescing_key_for_removal = e.key().clone();
 
                     // TODO: consider capping the dashmap size
 
-                    let chain_id = chain_id.clone();
-
-                    let rpc_method = rpc_method.clone();
-                    let project_name = project_name.clone();
-                    let chain_id = chain_id.clone();
                     tokio::spawn(async move {
-                        let did_complete =
-                            match tokio::time::timeout(timeout_duration, inner_fut_for_removal)
-                                .await
-                            {
-                                Ok(_) => true,
-                                Err(_) => false,
-                            };
-                        trace!(
-                            ?coalescing_key_for_removal,
-                            did_complete = ?did_complete,
-                            "removing coalesced request future"
-                        );
                         in_flight_requests.remove(&coalescing_key_for_removal);
                     });
 
-                    trace!(?coalescing_key, "storing coalesced request future");
                     e.insert(inner_fut.clone());
                     (inner_fut, false)
                 }
@@ -257,8 +230,6 @@ impl ChainHandler {
         let result = outer_fut.await;
 
         if coalesced {
-            debug!(?coalescing_key, "coalescing complete");
-
             return ChainHandlerResponse {
                 response_source: ChainHandlerResponseSource::Coalesced,
                 response_result: result.response_result,
@@ -340,8 +311,7 @@ impl ChainHandler {
         }
 
         if self.request_coalescing_config.should_coalesce(&call.method) {
-            self.handle_request_with_coalescing(&call, raw_call, req, project_config)
-                .await
+            self.handle_request_with_coalescing(raw_call, req).await
         } else {
             cache_then_upstream(self.request_pool.clone(), self.cache.clone(), raw_call, req).await
         }
@@ -431,7 +401,7 @@ async fn forward_to_upstream(
     };
 
     // TODO: add better logging and fields for the error. also add metrics and counters.
-    warn!(?error, "request pool error");
+    error!(?error, "request pool error");
 
     response
 }
