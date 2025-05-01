@@ -3,7 +3,7 @@ use rpc_gateway_config::{CacheConfig, ChainConfig};
 use std::{sync::Arc, time::Duration};
 use tracing::{error, warn};
 
-use crate::{local_cache::LocalCache, redis::RedisCache, reqres::ReqRes, ttl::TTLManager};
+use crate::{local_cache::LocalCache, redis::RedisCache, ttl::TTLManager};
 
 // TODO: this should not be async
 pub async fn from_config(
@@ -65,7 +65,7 @@ impl RpcCache {
         self.ttl_manager.get_ttl(req)
     }
 
-    pub async fn get(&self, req: &EthRequest) -> Option<ReqRes> {
+    pub async fn get(&self, req: &EthRequest) -> Option<serde_json::Value> {
         match &self.inner {
             RpcCacheInner::Local(local_cache) => local_cache.get(req).await,
             RpcCacheInner::Redis(redis_cache) => redis_cache.get(req).await,

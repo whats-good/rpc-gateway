@@ -427,7 +427,7 @@ async fn try_cache_read(cache: &Option<Arc<RpcCache>>, req: &EthRequest) -> Opti
         debug!(?req, "method is cacheable");
         if let Some(response) = cache.get(&req).await {
             debug!(?req, "cache hit");
-            return Some(ResponseResult::Success(response.res));
+            return Some(ResponseResult::Success(response));
         } else {
             debug!(?req, "cache miss");
         }

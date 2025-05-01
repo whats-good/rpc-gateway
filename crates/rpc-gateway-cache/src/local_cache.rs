@@ -3,20 +3,18 @@ use std::time::{Duration, Instant};
 use anvil_core::eth::EthRequest;
 use moka::{Expiry, future::Cache};
 
-use crate::reqres::ReqRes;
-
 /// Represents a cache entry
 #[derive(Debug, Clone)]
 pub struct CacheEntry {
     /// The actual value stored in the cache
-    pub value: ReqRes,
+    pub value: serde_json::Value,
     /// Duration after which this entry should expire
     pub ttl: Duration,
 }
 
 impl CacheEntry {
     /// Creates a new cache entry with the given value and TTL
-    pub fn new(value: ReqRes, ttl: Duration) -> Self {
+    pub fn new(value: serde_json::Value, ttl: Duration) -> Self {
         Self { value, ttl }
     }
 }
@@ -73,18 +71,14 @@ impl LocalCache {
         // TODO: may avoid saving the entire request as the key.
     }
 
-    pub async fn get(&self, req: &EthRequest) -> Option<ReqRes> {
+    pub async fn get(&self, req: &EthRequest) -> Option<serde_json::Value> {
         let key = self.get_key(req);
         self.cache.get(&key).await.map(|entry| entry.value)
     }
 
     pub async fn insert(&self, req: &EthRequest, response: &serde_json::Value, ttl: Duration) {
         let key = self.get_key(req);
-        let reqres = ReqRes {
-            req: req.clone(),
-            res: response.clone(),
-        };
-        let entry = CacheEntry::new(reqres, ttl);
+        let entry = CacheEntry::new(response.clone(), ttl);
         self.cache.insert(key, entry).await;
     }
 }
