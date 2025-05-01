@@ -49,7 +49,7 @@ async fn handle_rpc_request_with_project(
     let (project_name, chain_id) = path.into_inner();
 
     let project_config = match gateway.config.projects.get(&project_name) {
-        Some(project_config) => project_config,
+        Some(project_config) => project_config.clone(),
         None => {
             return Ok(serde_json::to_string(&Response::error(
                 RpcError::internal_error_with("Project not found"),
@@ -57,14 +57,7 @@ async fn handle_rpc_request_with_project(
         }
     };
 
-    handle_rpc_request_inner(
-        chain_id,
-        query,
-        body,
-        gateway.clone(),        // TODO: do i need to clone here?
-        project_config.clone(), // TODO: do i need to clone here?
-    )
-    .await
+    handle_rpc_request_inner(chain_id, query, body, gateway, project_config).await
 }
 
 async fn handle_rpc_request_without_project(
@@ -74,16 +67,9 @@ async fn handle_rpc_request_without_project(
     gateway: web::Data<Arc<Gateway>>,
 ) -> Result<String> {
     let chain_id = path.into_inner();
-    let project_config = gateway.config.projects.get("default").unwrap(); // TODO: make this a function on a ProjectsConfig struct.
+    let project_config = gateway.config.projects.get("default").unwrap().clone(); // TODO: make this a function on a ProjectsConfig struct.
 
-    handle_rpc_request_inner(
-        chain_id,
-        query,
-        body,
-        gateway.clone(),        // TODO: do i need to clone here?
-        project_config.clone(), // TODO: do i need to clone here?
-    )
-    .await
+    handle_rpc_request_inner(chain_id, query, body, gateway, project_config).await
 }
 
 async fn liveness_probe() -> Result<String> {

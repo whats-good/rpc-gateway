@@ -100,6 +100,9 @@ impl Upstream {
             .await
             .map_err(|e| UpstreamError::RequestError(e))?;
         // TODO: rebuild your own RpcResponse type. need to be able to access the .result field.
+
+        // TODO: consider early return here if the status is not 200.
+
         let rpc_response = raw_response
             .json::<RpcResponse>()
             .await
