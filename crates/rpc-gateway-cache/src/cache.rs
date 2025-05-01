@@ -1,5 +1,5 @@
-use anvil_core::eth::EthRequest;
 use rpc_gateway_config::{CacheConfig, ChainConfig};
+use rpc_gateway_eth::eth::EthRequest;
 use std::{sync::Arc, time::Duration};
 use tracing::{error, warn};
 

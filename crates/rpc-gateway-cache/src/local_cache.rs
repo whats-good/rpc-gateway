@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};
 
-use anvil_core::eth::EthRequest;
 use moka::{Expiry, future::Cache};
+use rpc_gateway_eth::eth::EthRequest;
 
 /// Represents a cache entry
 #[derive(Debug, Clone)]

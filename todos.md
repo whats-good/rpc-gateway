@@ -84,3 +84,4 @@
 [ ] TODO: track pre-upstream errors
 [ ] TODO: add "max inflight requests" to request coalescing config
 [ ] TODO: track proxy internal errors
+[ ] TODO: add ip tracking

@@ -1,10 +1,10 @@
 use std::{sync::Arc, time::Duration};
 
-use anvil_core::eth::EthRequest;
 use bb8::Pool;
 use bb8_redis::RedisConnectionManager;
 use redis::{AsyncCommands, FromRedisValue, RedisError, RedisWrite, ToRedisArgs};
 use rpc_gateway_config::RedisCacheConfig;
+use rpc_gateway_eth::eth::EthRequest;
 use tracing::error;
 
 #[derive(Debug)]

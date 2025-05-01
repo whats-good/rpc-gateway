@@ -4,6 +4,7 @@ members = [
   "crates/rpc-gateway-cache",
   "crates/rpc-gateway-config",
   "crates/rpc-gateway-core",
+  "crates/rpc-gateway-eth",
 ]
 resolver = "3"
 
@@ -24,6 +25,7 @@ repository = "https://github.com/whats-good/rpc-gateway"
 [workspace.dependencies]
 arc-swap = "1.7.0"
 async-trait = "0.1.88"
+bytes = "1.8"
 clap = { version = "4.4", features = ["derive"] }
 duration-str = "0.17.0"
 moka = { version = "0.12.10", features = ["future"] }
@@ -42,12 +44,26 @@ tracing-appender = { version = "0.2.1" }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 url = "2.5"
 alloy-chains = "0.2.0"
-alloy-primitives = "1.0.0"
+alloy-primitives = { version = "0.8.22", features = [
+  "getrandom",
+  "rand",
+  "map-fxhash",
+  "map-foldhash",
+] }
+alloy-consensus = { version = "0.12.1" }
+alloy-network = { version = "0.12.1" }
 alloy-dyn-abi = "0.8.25"
 alloy-eips = "0.12.6"
+alloy-rpc-types = { version = "0.12.1", default-features = true }
+alloy-serde = { version = "0.12.1" }
+alloy-rlp = "0.3"
+alloy-trie = "0.7.0"
+op-alloy-consensus = "0.11.0"
+op-alloy-rpc-types = "0.11.0"
 rpc-gateway-config = { path = "crates/rpc-gateway-config" }
 rpc-gateway-cache = { path = "crates/rpc-gateway-cache" }
-
+rpc-gateway-eth = { path = "crates/rpc-gateway-eth" }
+revm = { version = "19.4.0", default-features = false }
 [profile.release]
 opt-level = 3
 lto = "fat"

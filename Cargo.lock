@@ -565,7 +565,6 @@ dependencies = [
  "const-hex",
  "derive_more 2.0.1",
  "foldhash",
- "hashbrown 0.15.2",
  "indexmap 2.8.0",
  "itoa",
  "k256",
@@ -689,6 +688,7 @@ dependencies = [
  "alloy-rpc-types-engine",
  "alloy-rpc-types-eth",
  "alloy-rpc-types-trace",
+ "alloy-rpc-types-txpool",
  "alloy-serde",
  "serde",
 ]
@@ -766,6 +766,18 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.12",
+]
+
+[[package]]
+name = "alloy-rpc-types-txpool"
+version = "0.12.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70132ebdbea1eaa68c4d6f7a62c2fadf0bdce83b904f895ab90ca4ec96f63468"
+dependencies = [
+ "alloy-primitives 0.8.25",
+ "alloy-rpc-types-eth",
+ "alloy-serde",
+ "serde",
 ]
 
 [[package]]
@@ -1091,31 +1103,6 @@ dependencies = [
  "anstyle",
  "once_cell",
  "windows-sys 0.59.0",
-]
-
-[[package]]
-name = "anvil-core"
-version = "1.1.0"
-source = "git+https://github.com/whats-good/foundry?rev=b2bdf5ee58387021fe2048d47ea696bffaf44ffd#b2bdf5ee58387021fe2048d47ea696bffaf44ffd"
-dependencies = [
- "alloy-consensus",
- "alloy-dyn-abi",
- "alloy-eips",
- "alloy-network",
- "alloy-primitives 0.8.25",
- "alloy-rlp",
- "alloy-rpc-types",
- "alloy-serde",
- "alloy-trie",
- "bytes",
- "foundry-common",
- "foundry-evm",
- "op-alloy-consensus",
- "rand 0.8.5",
- "revm",
- "serde",
- "serde_json",
- "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -5743,8 +5730,7 @@ dependencies = [
  "alloy-chains 0.2.0",
  "alloy-dyn-abi",
  "alloy-eips",
- "alloy-primitives 1.0.0",
- "anvil-core",
+ "alloy-primitives 0.8.25",
  "arc-swap",
  "bb8",
  "bb8-redis",
@@ -5753,6 +5739,7 @@ dependencies = [
  "rand 0.9.1",
  "redis",
  "rpc-gateway-config",
+ "rpc-gateway-eth",
  "serde",
  "serde_json",
  "tokio",
@@ -5765,7 +5752,7 @@ name = "rpc-gateway-config"
 version = "0.1.0"
 dependencies = [
  "alloy-chains 0.2.0",
- "alloy-primitives 1.0.0",
+ "alloy-primitives 0.8.25",
  "duration-str",
  "nonempty",
  "serde",
@@ -5782,8 +5769,7 @@ dependencies = [
  "alloy-chains 0.2.0",
  "alloy-dyn-abi",
  "alloy-eips",
- "alloy-primitives 1.0.0",
- "anvil-core",
+ "alloy-primitives 0.8.25",
  "anvil-rpc",
  "arc-swap",
  "clap",
@@ -5797,6 +5783,7 @@ dependencies = [
  "reqwest",
  "rpc-gateway-cache",
  "rpc-gateway-config",
+ "rpc-gateway-eth",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -5806,6 +5793,30 @@ dependencies = [
  "tracing-appender",
  "tracing-subscriber",
  "url",
+]
+
+[[package]]
+name = "rpc-gateway-eth"
+version = "0.1.0"
+dependencies = [
+ "alloy-consensus",
+ "alloy-dyn-abi",
+ "alloy-eips",
+ "alloy-network",
+ "alloy-primitives 0.8.25",
+ "alloy-rlp",
+ "alloy-rpc-types",
+ "alloy-serde",
+ "alloy-trie",
+ "bytes",
+ "foundry-common",
+ "foundry-evm",
+ "op-alloy-consensus",
+ "rand 0.8.5",
+ "revm",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
 ]
 
 [[package]]

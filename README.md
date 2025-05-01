@@ -189,10 +189,17 @@ make test
 make lint
 ```
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Honorable Mentions
+
+This project wouldn't be possible without the amazing work of the following projects:
+
+- [Alloy](https://github.com/alloy-rs/alloy)
+- [Foundry](https://github.com/foundry-rs/foundry)application development
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

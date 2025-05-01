@@ -1,8 +1,8 @@
 use std::{sync::Arc, time::Duration};
 
 use alloy_eips::{BlockId, BlockNumberOrTag};
-use anvil_core::eth::EthRequest;
 use arc_swap::ArcSwap;
+use rpc_gateway_eth::eth::EthRequest;
 
 static ONE_YEAR: Duration = Duration::from_secs(31536000);
 
