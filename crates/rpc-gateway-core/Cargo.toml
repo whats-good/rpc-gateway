@@ -36,7 +36,6 @@ reqwest.workspace = true
 rpc-gateway-config.workspace = true
 rpc-gateway-cache.workspace = true
 serde_json.workspace = true
-simd-json.workspace = true
 serde_yaml.workspace = true
 serde.workspace = true
 tokio.workspace = true

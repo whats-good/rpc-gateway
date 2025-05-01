@@ -13,7 +13,6 @@ repository.workspace = true
 goose = "0.18.0"
 tokio.workspace = true
 serde_json.workspace = true
-simd-json.workspace = true
 rand.workspace = true
 
 [lints]
