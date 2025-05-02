@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use alloy_chains::Chain;
 use alloy_primitives::U64;
+use bytes::Bytes;
 use rand::Rng;
 use reqwest::Client;
 use rpc_gateway_config::UpstreamConfig;
@@ -24,13 +25,18 @@ pub enum UpstreamError {
 
 use std::sync::LazyLock;
 
-static CHAIN_ID_REQUEST: LazyLock<serde_json::Value> = LazyLock::new(|| {
-    serde_json::json!({
+use crate::lazy_request::PreservedRpcMethodCall;
+
+static CHAIN_ID_REQUEST: LazyLock<PreservedRpcMethodCall> = LazyLock::new(|| {
+    let value_payload = serde_json::json!({
       "jsonrpc": "2.0",
       "method": "eth_chainId",
       "params": [],
       "id": 1
-    })
+    });
+    let vec_result = serde_json::to_vec(&value_payload).map_err(|_| ());
+    let bytes = vec_result.map(Bytes::from).unwrap();
+    PreservedRpcMethodCall::try_from(bytes).unwrap()
 });
 
 impl Upstream {
@@ -86,7 +92,7 @@ impl Upstream {
     #[instrument(skip(self))]
     pub async fn forward_once(
         &self,
-        raw_call: &serde_json::Value,
+        call: &PreservedRpcMethodCall,
     ) -> Result<RpcResponse, UpstreamError> {
         // TODO: try parsing the response as an alloy_json_rpc::Response
         // TODO: make sure the upstream errors can be represented as an RpcError.
@@ -95,7 +101,7 @@ impl Upstream {
         let raw_response = self
             .client
             .post(self.config.url.as_str())
-            .json(&raw_call)
+            .body(call.raw.clone())
             .send()
             .await
             .map_err(|e| UpstreamError::RequestError(e))?;
@@ -114,7 +120,7 @@ impl Upstream {
     #[instrument(skip(self))]
     pub async fn forward_with_retry(
         &self,
-        raw_call: &serde_json::Value,
+        call: &PreservedRpcMethodCall,
         max_retries: u32,
         retry_delay: Duration,
         jitter: bool,
@@ -123,7 +129,7 @@ impl Upstream {
         let mut current_retry = 0;
 
         while current_retry <= max_retries {
-            match self.forward_once(raw_call).await {
+            match self.forward_once(call).await {
                 Ok(response) => {
                     info!(
                         retry_count = %current_retry,

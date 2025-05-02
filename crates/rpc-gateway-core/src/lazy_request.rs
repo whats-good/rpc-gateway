@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use rpc_gateway_rpc::request::RpcCall;
+use rpc_gateway_rpc::request::{RpcCall, RpcMethodCall};
 use serde_json::Value;
 
 #[derive(Debug)]
@@ -10,8 +10,14 @@ pub enum LazyRequest {
 
 #[derive(Debug)]
 pub struct PreservedSingleCall {
-    pub inner: Bytes,
+    pub raw: Bytes,
     pub parsed: RpcCall,
+}
+
+#[derive(Debug)]
+pub struct PreservedRpcMethodCall {
+    pub raw: Bytes,
+    pub parsed: RpcMethodCall,
 }
 
 #[derive(Debug)]
@@ -73,17 +79,23 @@ impl TryFrom<Bytes> for PreservedSingleCall {
 
     fn try_from(body: Bytes) -> Result<Self, Self::Error> {
         let parsed = serde_json::from_slice::<RpcCall>(&body).map_err(|_| ())?;
-        let preserved_single_call = PreservedSingleCall {
-            inner: body,
-            parsed,
-        };
+        let preserved_single_call = PreservedSingleCall { raw: body, parsed };
         Ok(preserved_single_call)
+    }
+}
+
+impl TryFrom<Bytes> for PreservedRpcMethodCall {
+    type Error = ();
+
+    fn try_from(body: Bytes) -> Result<Self, Self::Error> {
+        let parsed = serde_json::from_slice::<RpcMethodCall>(&body).map_err(|_| ())?;
+        let preserved_rpc_method_call = PreservedRpcMethodCall { raw: body, parsed };
+        Ok(preserved_rpc_method_call)
     }
 }
 
 impl TryFrom<LazyRequest> for PreservedCall {
     type Error = ();
-
     fn try_from(lazy_request: LazyRequest) -> Result<Self, Self::Error> {
         match lazy_request {
             LazyRequest::SingleCallOrError(single_call_or_error) => {

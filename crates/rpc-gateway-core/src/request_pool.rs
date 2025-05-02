@@ -1,5 +1,5 @@
-use crate::load_balancer::LoadBalancer;
 use crate::upstream::UpstreamError;
+use crate::{lazy_request::PreservedRpcMethodCall, load_balancer::LoadBalancer};
 use rpc_gateway_config::ErrorHandlingConfig;
 use rpc_gateway_rpc::response::RpcResponse;
 use std::sync::Arc;
@@ -30,7 +30,7 @@ impl ChainRequestPool {
     #[instrument(skip(self))]
     pub async fn forward_request(
         &self,
-        raw_call: &serde_json::Value,
+        call: &PreservedRpcMethodCall,
     ) -> Result<RpcResponse, RequestPoolError> {
         let upstream = match self.load_balancer.select_upstream() {
             Some(upstream) => upstream,
@@ -51,14 +51,14 @@ impl ChainRequestPool {
                     "Using retry strategy"
                 );
                 upstream
-                    .forward_with_retry(raw_call, *max_retries, *retry_delay, *jitter)
+                    .forward_with_retry(call, *max_retries, *retry_delay, *jitter)
                     .await
                     .map_err(|err| RequestPoolError::UpstreamError(err))
             }
             ErrorHandlingConfig::FailFast { .. } => {
                 debug!("Using fail-fast strategy");
                 upstream
-                    .forward_once(raw_call)
+                    .forward_once(call)
                     .await
                     .map_err(|err| RequestPoolError::UpstreamError(err))
             }
@@ -67,7 +67,7 @@ impl ChainRequestPool {
                     "Circuit breaker strategy not yet implemented, falling back to single attempt"
                 );
                 upstream
-                    .forward_once(raw_call)
+                    .forward_once(call)
                     .await
                     .map_err(|err| RequestPoolError::UpstreamError(err))
             }
