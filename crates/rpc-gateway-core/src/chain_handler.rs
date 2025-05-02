@@ -17,6 +17,7 @@ use std::borrow::Cow;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
+use std::time::Duration;
 use tracing::{debug, error, instrument, warn};
 
 #[derive(Debug, Clone)]
@@ -217,6 +218,8 @@ impl ChainHandler {
                     // TODO: consider capping the dashmap size
 
                     tokio::spawn(async move {
+                        let timeout_duration = Duration::from_millis(500); // TODO: make this configurable
+                        tokio::time::sleep(timeout_duration).await;
                         in_flight_requests.remove(&coalescing_key_for_removal);
                     });
 
