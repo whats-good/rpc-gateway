@@ -5,6 +5,7 @@ pub mod chain_handler;
 pub mod cli;
 pub mod cors;
 pub mod gateway;
+pub mod lazy_request;
 pub mod load_balancer;
 pub mod logging;
 pub mod metrics;

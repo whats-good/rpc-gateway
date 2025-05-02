@@ -3649,6 +3649,7 @@ dependencies = [
  "alloy-chains",
  "alloy-primitives",
  "arc-swap",
+ "bytes",
  "clap",
  "dashmap",
  "futures",

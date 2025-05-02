@@ -1,13 +1,14 @@
-use crate::{load_balancer, request_pool::ChainRequestPool, upstream::Upstream};
-use futures::{
-    FutureExt,
-    future::{self, join_all},
+use crate::{
+    lazy_request::{LazyRequest, PreservedCall},
+    load_balancer,
+    request_pool::ChainRequestPool,
+    upstream::Upstream,
 };
+use futures::future::join_all;
 use nonempty::NonEmpty;
 use rpc_gateway_config::{Config, ProjectConfig};
 use rpc_gateway_rpc::{
     error::RpcError,
-    request::Request,
     response::{Response, RpcResponse},
 };
 use std::{collections::HashMap, sync::Arc};
@@ -16,25 +17,25 @@ use tracing::{debug, warn};
 use crate::chain_handler::ChainHandler;
 
 #[derive(Debug)]
-pub struct GatewayRequest {
+pub struct GatewayCall {
     pub project_config: ProjectConfig,
     pub key: Option<String>,
     pub chain_id: u64,
-    pub req: rpc_gateway_rpc::request::Request,
+    pub call: PreservedCall,
 }
 
-impl GatewayRequest {
+impl GatewayCall {
     pub fn new(
         project_config: ProjectConfig,
         key: Option<String>,
         chain_id: u64,
-        req: Request,
+        call: PreservedCall,
     ) -> Self {
         Self {
             project_config,
             key,
             chain_id,
-            req,
+            call,
         }
     }
 }
@@ -121,7 +122,7 @@ impl Gateway {
         join_all(futures).await;
     }
 
-    pub async fn handle_request(&self, gateway_request: GatewayRequest) -> Option<Response> {
+    pub async fn handle_request(&self, gateway_request: GatewayCall) -> Option<Response> {
         let is_authorized = gateway_request.project_config.key == gateway_request.key;
 
         let chain_handler = match self.handlers.get(&gateway_request.chain_id) {
@@ -137,24 +138,25 @@ impl Gateway {
         // TODO: track actual incoming requests, and tag them by batch or single
         // separate metrics by inbound vs outbound.
 
-        match (gateway_request.req, is_authorized) {
-            (Request::Single(call), true) => chain_handler
-                .handle_call(call, project_config)
+        if !is_authorized {
+            let error = Response::error(RpcError::internal_error_with("Unauthorized"));
+            return Some(error);
+        }
+
+        match gateway_request.call {
+            PreservedCall::Single(preserved_single_call) => chain_handler
+                .handle_call(preserved_single_call, project_config)
                 .await
                 .map(Response::Single),
-            (Request::Batch(calls), true) => {
-                future::join_all(
-                    calls
-                        .into_iter()
-                        .map(move |call| chain_handler.handle_call(call, project_config)),
-                )
-                .map(responses_as_batch)
-                .await
-            }
-            (_, false) => {
-                warn!("Unauthorized request");
-                let error = Response::error(RpcError::internal_error_with("Unauthorized"));
-                return Some(error);
+            PreservedCall::Batch(calls) => {
+                let futures = calls
+                    .into_iter()
+                    .map(|call| chain_handler.handle_call(call, project_config));
+
+                let responses = join_all(futures).await;
+                let batch_response = responses_as_batch(responses);
+
+                batch_response
             }
         }
     }

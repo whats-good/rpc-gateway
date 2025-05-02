@@ -1,15 +1,17 @@
 use crate::{
     cors::cors_middleware,
-    gateway::{Gateway, GatewayRequest},
+    gateway::{Gateway, GatewayCall},
+    lazy_request::{LazyRequest, PreservedCall},
 };
 use actix_web::{App, HttpResponse, HttpServer, Result, web};
 use rpc_gateway_config::{Config, ProjectConfig};
-use rpc_gateway_rpc::{error::RpcError, request::Request, response::Response};
+use rpc_gateway_rpc::{error::RpcError, response::Response};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::{info, instrument, warn};
 
 #[instrument(skip(gateway))]
+#[inline]
 async fn handle_rpc_request_inner(
     chain_id: u64,
     query: web::Query<HashMap<String, String>>,
@@ -18,16 +20,20 @@ async fn handle_rpc_request_inner(
     project_config: ProjectConfig,
 ) -> Result<String> {
     let project_key = query.get("key").cloned();
-    // TODO: use simd_json::from_slice::<Request>(&body_bytes)
-    let body_bytes = body.to_vec();
-    let request = serde_json::from_slice::<Request>(&body_bytes).map_err(|e| {
-        warn!(error = %e, "Failed to parse request body");
-        // TODO: how do we know what the request was - if we can't parse it???
-        // TODO: why do we get empty bytes here?
+
+    let lazy_request = LazyRequest::try_from(body).map_err(|_| {
+        warn!("Failed to parse request body");
         actix_web::error::ErrorBadRequest("Invalid JSON-RPC request")
     })?;
 
-    let gateway_request = GatewayRequest::new(project_config, project_key, chain_id, request);
+    let preserved_call = PreservedCall::try_from(lazy_request).map_err(|_| {
+        warn!("Failed to parse request body");
+        actix_web::error::ErrorBadRequest("Invalid JSON-RPC request")
+    })?;
+
+    let gateway_request = GatewayCall::new(project_config, project_key, chain_id, preserved_call);
+    // TODO: the response doesn't need to be parsed beforehand. see if we can do more bytes shenanigans.
+
     let response = gateway
         .handle_request(gateway_request)
         .await

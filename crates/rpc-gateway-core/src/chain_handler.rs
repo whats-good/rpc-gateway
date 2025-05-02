@@ -1,3 +1,4 @@
+use crate::lazy_request::PreservedSingleCall;
 use crate::request_pool::{ChainRequestPool, RequestPoolError};
 use crate::upstream::UpstreamError;
 use alloy_primitives::hex;
@@ -86,10 +87,10 @@ impl ChainHandler {
     /// handle a single RPC method call
     pub async fn handle_call(
         &self,
-        call: RpcCall,
+        call: PreservedSingleCall,
         project_config: &ProjectConfig,
     ) -> Option<RpcResponse> {
-        match call {
+        match call.parsed {
             RpcCall::MethodCall(call) => Some(self.on_method_call(call, project_config).await),
             RpcCall::Notification(notification) => {
                 // TODO: handle notifications
