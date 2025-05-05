@@ -1,19 +1,20 @@
 use bytes::Bytes;
 use rpc_gateway_rpc::request::{RpcCall, RpcMethodCall};
+use serde::Serialize;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Serialize)]
 pub struct PreservedSingleCall {
     pub raw: Bytes,
     pub deserialized: RpcCall,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct PreservedMethodCall {
     pub raw: Bytes,
     pub deserialized: RpcMethodCall,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Serialize)]
 pub enum PreservedRequest {
     Single(PreservedSingleCall),
     Batch(Vec<PreservedSingleCall>),
@@ -85,8 +86,8 @@ mod tests {
             jsonrpc: Version::V2,
             method: "eth_getBlockByNumber".to_string(),
             params: RequestParams::Array(vec![
-                serde_json::Value::String("0x1".to_string()),
-                serde_json::Value::String("false".to_string()),
+                simd_json::OwnedValue::String("0x1".to_string()),
+                simd_json::OwnedValue::String("false".to_string()),
             ]),
             id: Id::Number(1),
         });
@@ -98,7 +99,10 @@ mod tests {
 
         let actual_preserved_request = PreservedRequest::try_from(bytes).unwrap();
 
-        assert_eq!(actual_preserved_request, expected_preserved_request);
+        let expected_str = serde_json::to_string(&expected_preserved_request).unwrap();
+        let actual_str = simd_json::to_string(&actual_preserved_request).unwrap();
+
+        assert_eq!(actual_str, expected_str);
     }
 
     #[test]
@@ -108,8 +112,8 @@ mod tests {
             jsonrpc: Version::V2,
             method: "eth_getBlockByNumber".to_string(),
             params: RequestParams::Array(vec![
-                serde_json::Value::String("0x1".to_string()),
-                serde_json::Value::String("false".to_string()),
+                simd_json::OwnedValue::String("0x1".to_string()),
+                simd_json::OwnedValue::String("false".to_string()),
             ]),
             id: Id::Number(1),
         });
@@ -120,20 +124,29 @@ mod tests {
         });
 
         let actual_preserved_request = PreservedRequest::try_from(bytes).unwrap();
-        assert_eq!(actual_preserved_request, expected_preserved_request);
+        let expected_str = serde_json::to_string(&expected_preserved_request).unwrap();
+        let actual_str = serde_json::to_string(&actual_preserved_request).unwrap();
+
+        assert_eq!(actual_str, expected_str);
     }
 
     #[test]
     fn test_preserved_request_deserialization_batch_empty() {
         let preserved_request = PreservedRequest::try_from(Bytes::from_static(b"[]")).unwrap();
-        assert_eq!(preserved_request, PreservedRequest::Batch(vec![]));
+        let expected_str = serde_json::to_string(&PreservedRequest::Batch(vec![])).unwrap();
+        let actual_str = serde_json::to_string(&preserved_request).unwrap();
+
+        assert_eq!(actual_str, expected_str);
     }
 
     #[test]
     fn test_preserved_request_deserialization_batch_empty_with_whitespace() {
         let preserved_request =
             PreservedRequest::try_from(Bytes::from_static(b"\r\t\n[]\r")).unwrap();
-        assert_eq!(preserved_request, PreservedRequest::Batch(vec![]));
+        let expected_str = serde_json::to_string(&PreservedRequest::Batch(vec![])).unwrap();
+        let actual_str = serde_json::to_string(&preserved_request).unwrap();
+
+        assert_eq!(actual_str, expected_str);
     }
 
     #[test]
@@ -143,8 +156,8 @@ mod tests {
             jsonrpc: Version::V2,
             method: "eth_getBlockByNumber".to_string(),
             params: RequestParams::Array(vec![
-                serde_json::Value::String("0x1".to_string()),
-                serde_json::Value::String("false".to_string()),
+                simd_json::OwnedValue::String("0x1".to_string()),
+                simd_json::OwnedValue::String("false".to_string()),
             ]),
             id: Id::Number(1),
         });
@@ -157,7 +170,10 @@ mod tests {
         }]);
 
         let actual_preserved_request = PreservedRequest::try_from(bytes).unwrap();
-        assert_eq!(actual_preserved_request, expected_preserved_request);
+        let expected_str = serde_json::to_string(&expected_preserved_request).unwrap();
+        let actual_str = serde_json::to_string(&actual_preserved_request).unwrap();
+
+        assert_eq!(actual_str, expected_str);
     }
 
     #[test]
@@ -167,8 +183,8 @@ mod tests {
             jsonrpc: Version::V2,
             method: "eth_getBlockByNumber".to_string(),
             params: RequestParams::Array(vec![
-                serde_json::Value::String("0x1".to_string()),
-                serde_json::Value::String("false".to_string()),
+                simd_json::OwnedValue::String("0x1".to_string()),
+                simd_json::OwnedValue::String("false".to_string()),
             ]),
             id: Id::Number(1),
         });
@@ -181,7 +197,10 @@ mod tests {
         }]);
 
         let actual_preserved_request = PreservedRequest::try_from(bytes).unwrap();
-        assert_eq!(actual_preserved_request, expected_preserved_request);
+        let expected_str = serde_json::to_string(&expected_preserved_request).unwrap();
+        let actual_str = serde_json::to_string(&actual_preserved_request).unwrap();
+
+        assert_eq!(actual_str, expected_str);
     }
 
     #[test]
@@ -191,8 +210,8 @@ mod tests {
             jsonrpc: Version::V2,
             method: "eth_getBlockByNumber".to_string(),
             params: RequestParams::Array(vec![
-                serde_json::Value::String("0x1".to_string()),
-                serde_json::Value::String("false".to_string()),
+                simd_json::OwnedValue::String("0x1".to_string()),
+                simd_json::OwnedValue::String("false".to_string()),
             ]),
             id: Id::Number(1),
         });
@@ -201,8 +220,8 @@ mod tests {
             jsonrpc: Version::V2,
             method: "eth_getBlockByNumber".to_string(),
             params: RequestParams::Array(vec![
-                serde_json::Value::String("0x1".to_string()),
-                serde_json::Value::String("false".to_string()),
+                simd_json::OwnedValue::String("0x1".to_string()),
+                simd_json::OwnedValue::String("false".to_string()),
             ]),
             id: Id::Number(2),
         });
@@ -222,7 +241,10 @@ mod tests {
         ]);
 
         let actual_preserved_request = PreservedRequest::try_from(bytes).unwrap();
-        assert_eq!(actual_preserved_request, expected_preserved_request);
+        let expected_str = serde_json::to_string(&expected_preserved_request).unwrap();
+        let actual_str = serde_json::to_string(&actual_preserved_request).unwrap();
+
+        assert_eq!(actual_str, expected_str);
     }
 
     #[test]
@@ -232,8 +254,8 @@ mod tests {
             jsonrpc: Version::V2,
             method: "eth_getBlockByNumber".to_string(),
             params: RequestParams::Array(vec![
-                serde_json::Value::String("0x1".to_string()),
-                serde_json::Value::String("false".to_string()),
+                simd_json::OwnedValue::String("0x1".to_string()),
+                simd_json::OwnedValue::String("false".to_string()),
             ]),
             id: Id::Number(1),
         });
@@ -242,8 +264,8 @@ mod tests {
             jsonrpc: Version::V2,
             method: "eth_getBlockByNumber".to_string(),
             params: RequestParams::Array(vec![
-                serde_json::Value::String("0x1".to_string()),
-                serde_json::Value::String("false".to_string()),
+                simd_json::OwnedValue::String("0x1".to_string()),
+                simd_json::OwnedValue::String("false".to_string()),
             ]),
             id: Id::Number(2),
         });
@@ -263,6 +285,9 @@ mod tests {
         ]);
 
         let actual_preserved_request = PreservedRequest::try_from(bytes).unwrap();
-        assert_eq!(actual_preserved_request, expected_preserved_request);
+        let expected_str = serde_json::to_string(&expected_preserved_request).unwrap();
+        let actual_str = serde_json::to_string(&actual_preserved_request).unwrap();
+
+        assert_eq!(actual_str, expected_str);
     }
 }
