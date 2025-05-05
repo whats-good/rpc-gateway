@@ -43,7 +43,7 @@ impl RedisCache {
         format!("{}:{}", self.chain_id, key)
     }
 
-    pub async fn get(&self, key: &str) -> Option<serde_json::Value> {
+    pub async fn get(&self, key: &str) -> Option<simd_json::OwnedValue> {
         let key = self.key(key);
         let mut con = match self.pool.get().await {
             Ok(con) => con,
@@ -53,9 +53,9 @@ impl RedisCache {
             }
         };
 
-        let value: Result<Option<String>, _> = con.get(&key).await;
-        let serde_value: Option<Result<serde_json::Value, serde_json::Error>> = match value {
-            Ok(value) => value.map(|v| serde_json::from_str(&v)),
+        let value: Result<Option<Vec<u8>>, _> = con.get(&key).await;
+        let simd_value: Option<Result<simd_json::OwnedValue, simd_json::Error>> = match value {
+            Ok(value) => value.map(|mut v| simd_json::from_slice(&mut v)),
             Err(e) => {
                 error!(
                     error = ?e,
@@ -65,7 +65,7 @@ impl RedisCache {
                 return None;
             }
         };
-        match serde_value {
+        match simd_value {
             Some(Ok(value)) => Some(value),
             Some(Err(e)) => {
                 error!(error = ?e, "Failed to deserialize Redis value");
@@ -75,7 +75,7 @@ impl RedisCache {
         }
     }
 
-    pub async fn insert(&self, key: String, response: &serde_json::Value, ttl: Duration) {
+    pub async fn insert(&self, key: String, response: &simd_json::OwnedValue, ttl: Duration) {
         let key = self.key(&key);
         // TODO: is there a better way to store the conneciton and reuse it?
         let mut connection = match self.pool.get().await {
@@ -90,11 +90,7 @@ impl RedisCache {
         };
 
         let result: Result<(), _> = connection
-            .set_ex(
-                &key,
-                serde_json::to_string(response).unwrap(),
-                ttl.as_secs(),
-            )
+            .set_ex(&key, simd_json::to_vec(&response).unwrap(), ttl.as_secs())
             .await;
         match result {
             Ok(_) => {}

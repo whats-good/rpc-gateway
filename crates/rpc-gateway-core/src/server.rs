@@ -7,11 +7,19 @@ use actix_web::{App, HttpResponse, HttpServer, Result, web};
 use metrics::{counter, histogram};
 use rpc_gateway_config::{Config, ProjectConfig};
 use rpc_gateway_rpc::{error::RpcError, response::Response};
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use std::{collections::HashMap, time::Instant};
 use tracing::{info, instrument, warn};
 
 // TODO: use Result<HttpResponse> instead of unwrap everywhere.
+
+static INVALID_REQUEST_BODY: LazyLock<String> = LazyLock::new(|| {
+    simd_json::to_string(&Response::error(RpcError::internal_error_with(
+        "Invalid JSON-RPC request",
+    )))
+    .unwrap()
+    .into()
+});
 
 #[inline]
 fn track_http_response(
@@ -55,11 +63,7 @@ async fn handle_rpc_request_inner(
 
             track_http_response(chain_id, &project_name, "invalid_request", start_time);
 
-            let body = serde_json::to_string(&Response::error(RpcError::internal_error_with(
-                "Invalid JSON-RPC request",
-            )))
-            .unwrap();
-            return HttpResponse::Ok().body(body);
+            return HttpResponse::Ok().body(INVALID_REQUEST_BODY.clone());
         }
     };
     let gateway_request =
@@ -69,7 +73,7 @@ async fn handle_rpc_request_inner(
 
     match gateway.handle_request(gateway_request).await {
         Some(response) => {
-            let body = serde_json::to_string(&response).unwrap();
+            let body = simd_json::to_string(&response).unwrap();
 
             // TODO: single_response can actually be an invalid_request response.
             // this could be coming directly from the upstream,
@@ -110,7 +114,7 @@ async fn handle_rpc_request_with_project(
                 start_time,
             );
 
-            let body = serde_json::to_string(&Response::error(RpcError::internal_error_with(
+            let body = simd_json::to_string(&Response::error(RpcError::internal_error_with(
                 "Project not found",
             )))
             .unwrap();

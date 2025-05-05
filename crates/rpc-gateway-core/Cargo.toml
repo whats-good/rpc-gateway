@@ -29,7 +29,6 @@ rpc-gateway-eth.workspace = true
 rpc-gateway-rpc.workspace = true
 rpc-gateway-upstream.workspace = true
 serde.workspace = true
-serde_json.workspace = true
 simd-json.workspace = true
 tokio.workspace = true
 tokio-util.workspace = true

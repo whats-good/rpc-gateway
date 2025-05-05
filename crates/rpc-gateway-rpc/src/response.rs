@@ -5,7 +5,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 /// Response of a _single_ rpc call
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RpcResponse {
     // JSON RPC version
@@ -41,21 +41,18 @@ impl RpcResponse {
 }
 
 /// Represents the result of a call either success or error
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub enum ResponseResult {
     #[serde(rename = "result")]
-    Success(serde_json::Value),
+    Success(simd_json::OwnedValue),
     #[serde(rename = "error")]
     Error(RpcError),
 }
 
 impl ResponseResult {
-    pub fn success<S>(content: S) -> Self
-    where
-        S: Serialize + 'static,
-    {
-        Self::Success(serde_json::to_value(&content).unwrap())
+    pub fn success(content: simd_json::OwnedValue) -> Self {
+        Self::Success(content)
     }
 
     pub fn error(error: RpcError) -> Self {
@@ -69,7 +66,7 @@ impl From<RpcError> for ResponseResult {
     }
 }
 /// Synchronous response
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 #[serde(untagged)]
 pub enum Response {

@@ -2702,7 +2702,7 @@ version = "0.1.0"
 dependencies = [
  "goose",
  "rand 0.9.1",
- "serde_json",
+ "simd-json",
  "tokio",
 ]
 
@@ -3677,7 +3677,7 @@ dependencies = [
  "rpc-gateway-config",
  "rpc-gateway-eth",
  "serde_bytes",
- "serde_json",
+ "simd-json",
  "tracing",
 ]
 
@@ -3713,7 +3713,6 @@ dependencies = [
  "rpc-gateway-rpc",
  "rpc-gateway-upstream",
  "serde",
- "serde_json",
  "simd-json",
  "tikv-jemallocator",
  "tokio",
@@ -3740,7 +3739,6 @@ dependencies = [
  "bytes",
  "serde",
  "serde_bytes",
- "serde_json",
  "simd-json",
 ]
 
@@ -3757,7 +3755,7 @@ dependencies = [
  "rpc-gateway-rpc",
  "serde",
  "serde_bytes",
- "serde_json",
+ "simd-json",
  "tokio",
  "tracing",
 ]

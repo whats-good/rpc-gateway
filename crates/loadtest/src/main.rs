@@ -35,7 +35,7 @@ async fn eth_block_by_number_random(user: &mut GooseUser) -> TransactionResult {
         let random_number = rng.random_range(0..100000);
         format!("0x{:x}", random_number)
     };
-    let request = serde_json::json!({
+    let request = simd_json::json!({
         "jsonrpc": "2.0",
         "method": "eth_getBlockByNumber",
         "params": [random_number_hex, false],
@@ -48,7 +48,7 @@ async fn eth_block_by_number_random(user: &mut GooseUser) -> TransactionResult {
 
 /// Get the current block number
 async fn eth_block_number(user: &mut GooseUser) -> TransactionResult {
-    let request = serde_json::json!({
+    let request = simd_json::json!({
         "jsonrpc": "2.0",
         "method": "eth_blockNumber",
         "params": [],
@@ -60,7 +60,7 @@ async fn eth_block_number(user: &mut GooseUser) -> TransactionResult {
 }
 
 async fn eth_get_block_by_number(user: &mut GooseUser) -> TransactionResult {
-    let request = serde_json::json!({
+    let request = simd_json::json!({
         "jsonrpc": "2.0",
         "method": "eth_getBlockByNumber",
         "params": ["latest", false],
@@ -72,7 +72,7 @@ async fn eth_get_block_by_number(user: &mut GooseUser) -> TransactionResult {
 }
 
 async fn eth_get_block_by_number_with_transactions(user: &mut GooseUser) -> TransactionResult {
-    let request = serde_json::json!({
+    let request = simd_json::json!({
         "jsonrpc": "2.0",
         "method": "eth_getBlockByNumber",
         "params": ["latest", true],
@@ -87,7 +87,7 @@ async fn eth_get_block_by_number_with_transactions(user: &mut GooseUser) -> Tran
 async fn eth_get_balance(user: &mut GooseUser) -> TransactionResult {
     // Using a random address for testing
     let address = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e";
-    let request = serde_json::json!({
+    let request = simd_json::json!({
         "jsonrpc": "2.0",
         "method": "eth_getBalance",
         "params": [address, "latest"],
@@ -99,7 +99,7 @@ async fn eth_get_balance(user: &mut GooseUser) -> TransactionResult {
 }
 
 async fn eth_call(user: &mut GooseUser) -> TransactionResult {
-    let request = serde_json::json!({
+    let request = simd_json::json!({
         "jsonrpc": "2.0",
         "method": "eth_call",
         "params": [
@@ -117,7 +117,7 @@ async fn eth_call(user: &mut GooseUser) -> TransactionResult {
 }
 
 async fn unknown_method(user: &mut GooseUser) -> TransactionResult {
-    let request = serde_json::json!({
+    let request = simd_json::json!({
         "jsonrpc": "2.0",
         "method": "unknown_method",
         "params": [],

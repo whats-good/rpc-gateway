@@ -3,20 +3,24 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{borrow::Cow, fmt};
 
 /// Represents a JSON-RPC error
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RpcError {
     pub code: ErrorCode,
     /// error message
     pub message: Cow<'static, str>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<serde_json::Value>,
+    pub data: Option<simd_json::OwnedValue>,
 }
 
 impl RpcError {
     /// New [`RpcError`] with the given [`ErrorCode`].
     pub const fn new(code: ErrorCode) -> Self {
-        Self { message: Cow::Borrowed(code.message()), code, data: None }
+        Self {
+            message: Cow::Borrowed(code.message()),
+            code,
+            data: None,
+        }
     }
 
     /// Creates a new `ParseError` error.
@@ -44,7 +48,11 @@ impl RpcError {
     where
         M: Into<String>,
     {
-        Self { code: ErrorCode::InvalidParams, message: message.into().into(), data: None }
+        Self {
+            code: ErrorCode::InvalidParams,
+            message: message.into().into(),
+            data: None,
+        }
     }
 
     /// Creates a new `InternalError` error with a message.
@@ -52,7 +60,11 @@ impl RpcError {
     where
         M: Into<String>,
     {
-        Self { code: ErrorCode::InternalError, message: message.into().into(), data: None }
+        Self {
+            code: ErrorCode::InternalError,
+            message: message.into().into(),
+            data: None,
+        }
     }
 
     /// Creates a new RPC error for when a transaction was rejected.
@@ -60,7 +72,11 @@ impl RpcError {
     where
         M: Into<String>,
     {
-        Self { code: ErrorCode::TransactionRejected, message: message.into().into(), data: None }
+        Self {
+            code: ErrorCode::TransactionRejected,
+            message: message.into().into(),
+            data: None,
+        }
     }
 }
 

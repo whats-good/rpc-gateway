@@ -24,7 +24,8 @@ impl TryFrom<Bytes> for PreservedSingleCall {
     type Error = ();
 
     fn try_from(value: Bytes) -> Result<Self, Self::Error> {
-        let deserialized = serde_json::from_slice(&value).map_err(|_| ())?;
+        let mut vec = value.to_vec();
+        let deserialized = simd_json::from_slice(&mut vec).map_err(|_| ())?;
         Ok(PreservedSingleCall {
             raw: value,
             deserialized,
@@ -36,7 +37,7 @@ impl TryFrom<RpcCall> for PreservedSingleCall {
     type Error = ();
 
     fn try_from(value: RpcCall) -> Result<Self, Self::Error> {
-        let json_bytes = serde_json::to_vec(&value).map_err(|_| ())?;
+        let json_bytes = simd_json::to_vec(&value).map_err(|_| ())?;
         let bytes = Bytes::from(json_bytes);
         PreservedSingleCall::try_from(bytes)
     }
@@ -45,7 +46,8 @@ impl TryFrom<RpcCall> for PreservedSingleCall {
 fn try_from_bytes_to_vec_preserved_single_call(
     value: Bytes,
 ) -> Result<Vec<PreservedSingleCall>, ()> {
-    let deserialized_json_vec: Vec<RpcCall> = serde_json::from_slice(&value).map_err(|_| ())?;
+    let mut value = value.to_vec();
+    let deserialized_json_vec: Vec<RpcCall> = simd_json::from_slice(&mut value).map_err(|_| ())?;
 
     deserialized_json_vec
         .into_iter()
@@ -99,7 +101,7 @@ mod tests {
 
         let actual_preserved_request = PreservedRequest::try_from(bytes).unwrap();
 
-        let expected_str = serde_json::to_string(&expected_preserved_request).unwrap();
+        let expected_str = simd_json::to_string(&expected_preserved_request).unwrap();
         let actual_str = simd_json::to_string(&actual_preserved_request).unwrap();
 
         assert_eq!(actual_str, expected_str);
@@ -124,8 +126,8 @@ mod tests {
         });
 
         let actual_preserved_request = PreservedRequest::try_from(bytes).unwrap();
-        let expected_str = serde_json::to_string(&expected_preserved_request).unwrap();
-        let actual_str = serde_json::to_string(&actual_preserved_request).unwrap();
+        let expected_str = simd_json::to_string(&expected_preserved_request).unwrap();
+        let actual_str = simd_json::to_string(&actual_preserved_request).unwrap();
 
         assert_eq!(actual_str, expected_str);
     }
@@ -133,8 +135,8 @@ mod tests {
     #[test]
     fn test_preserved_request_deserialization_batch_empty() {
         let preserved_request = PreservedRequest::try_from(Bytes::from_static(b"[]")).unwrap();
-        let expected_str = serde_json::to_string(&PreservedRequest::Batch(vec![])).unwrap();
-        let actual_str = serde_json::to_string(&preserved_request).unwrap();
+        let expected_str = simd_json::to_string(&PreservedRequest::Batch(vec![])).unwrap();
+        let actual_str = simd_json::to_string(&preserved_request).unwrap();
 
         assert_eq!(actual_str, expected_str);
     }
@@ -143,8 +145,8 @@ mod tests {
     fn test_preserved_request_deserialization_batch_empty_with_whitespace() {
         let preserved_request =
             PreservedRequest::try_from(Bytes::from_static(b"\r\t\n[]\r")).unwrap();
-        let expected_str = serde_json::to_string(&PreservedRequest::Batch(vec![])).unwrap();
-        let actual_str = serde_json::to_string(&preserved_request).unwrap();
+        let expected_str = simd_json::to_string(&PreservedRequest::Batch(vec![])).unwrap();
+        let actual_str = simd_json::to_string(&preserved_request).unwrap();
 
         assert_eq!(actual_str, expected_str);
     }
@@ -170,8 +172,8 @@ mod tests {
         }]);
 
         let actual_preserved_request = PreservedRequest::try_from(bytes).unwrap();
-        let expected_str = serde_json::to_string(&expected_preserved_request).unwrap();
-        let actual_str = serde_json::to_string(&actual_preserved_request).unwrap();
+        let expected_str = simd_json::to_string(&expected_preserved_request).unwrap();
+        let actual_str = simd_json::to_string(&actual_preserved_request).unwrap();
 
         assert_eq!(actual_str, expected_str);
     }
@@ -197,8 +199,8 @@ mod tests {
         }]);
 
         let actual_preserved_request = PreservedRequest::try_from(bytes).unwrap();
-        let expected_str = serde_json::to_string(&expected_preserved_request).unwrap();
-        let actual_str = serde_json::to_string(&actual_preserved_request).unwrap();
+        let expected_str = simd_json::to_string(&expected_preserved_request).unwrap();
+        let actual_str = simd_json::to_string(&actual_preserved_request).unwrap();
 
         assert_eq!(actual_str, expected_str);
     }
@@ -241,8 +243,8 @@ mod tests {
         ]);
 
         let actual_preserved_request = PreservedRequest::try_from(bytes).unwrap();
-        let expected_str = serde_json::to_string(&expected_preserved_request).unwrap();
-        let actual_str = serde_json::to_string(&actual_preserved_request).unwrap();
+        let expected_str = simd_json::to_string(&expected_preserved_request).unwrap();
+        let actual_str = simd_json::to_string(&actual_preserved_request).unwrap();
 
         assert_eq!(actual_str, expected_str);
     }
@@ -285,8 +287,8 @@ mod tests {
         ]);
 
         let actual_preserved_request = PreservedRequest::try_from(bytes).unwrap();
-        let expected_str = serde_json::to_string(&expected_preserved_request).unwrap();
-        let actual_str = serde_json::to_string(&actual_preserved_request).unwrap();
+        let expected_str = simd_json::to_string(&expected_preserved_request).unwrap();
+        let actual_str = simd_json::to_string(&actual_preserved_request).unwrap();
 
         assert_eq!(actual_str, expected_str);
     }

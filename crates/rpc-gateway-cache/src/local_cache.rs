@@ -6,14 +6,14 @@ use moka::{Expiry, future::Cache};
 #[derive(Debug, Clone)]
 pub struct CacheEntry {
     /// The actual value stored in the cache
-    pub value: serde_json::Value,
+    pub value: simd_json::OwnedValue,
     /// Duration after which this entry should expire
     pub ttl: Duration,
 }
 
 impl CacheEntry {
     /// Creates a new cache entry with the given value and TTL
-    pub fn new(value: serde_json::Value, ttl: Duration) -> Self {
+    pub fn new(value: simd_json::OwnedValue, ttl: Duration) -> Self {
         Self { value, ttl }
     }
 }
@@ -62,11 +62,11 @@ impl LocalCache {
 }
 
 impl LocalCache {
-    pub async fn get(&self, key: &str) -> Option<serde_json::Value> {
+    pub async fn get(&self, key: &str) -> Option<simd_json::OwnedValue> {
         self.cache.get(key).await.map(|entry| entry.value)
     }
 
-    pub async fn insert(&self, key: String, response: &serde_json::Value, ttl: Duration) {
+    pub async fn insert(&self, key: String, response: &simd_json::OwnedValue, ttl: Duration) {
         let entry = CacheEntry::new(response.clone(), ttl);
         self.cache.insert(key, entry).await;
     }

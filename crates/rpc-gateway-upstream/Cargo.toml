@@ -20,7 +20,7 @@ rpc-gateway-config.workspace = true
 rpc-gateway-rpc.workspace = true
 tracing.workspace = true
 serde.workspace = true
-serde_json.workspace = true
+simd-json.workspace = true
 serde_bytes.workspace = true
 tokio.workspace = true
 

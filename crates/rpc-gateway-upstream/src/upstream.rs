@@ -7,6 +7,7 @@ use rand::Rng;
 use reqwest::Client;
 use rpc_gateway_config::UpstreamConfig;
 use rpc_gateway_rpc::response::{ResponseResult, RpcResponse};
+use simd_json::base::ValueAsScalar;
 use tracing::{debug, error, info, instrument, warn};
 
 #[derive(Debug)]
@@ -26,7 +27,7 @@ pub enum UpstreamError {
 use std::sync::LazyLock;
 
 static CHAIN_ID_REQUEST: LazyLock<Bytes> = LazyLock::new(|| {
-    serde_json::to_string(&serde_json::json!({
+    simd_json::to_string(&simd_json::json!({
       "jsonrpc": "2.0",
       "method": "eth_chainId",
       "params": [],
@@ -69,10 +70,18 @@ impl Upstream {
             ResponseResult::Error(_) => return false,
         };
 
-        let chain_id: U64 = match serde_json::from_value(success_result) {
-            Ok(chain_id) => chain_id,
-            Err(_) => {
-                error!(upstream = ?self, "Could not parse chain id in readiness probe");
+        let str_val = success_result.as_str();
+
+        let chain_id: U64 = match str_val {
+            Some(hex_str) => match U64::from_str_radix(hex_str.trim_start_matches("0x"), 16) {
+                Ok(chain_id) => chain_id,
+                Err(_) => {
+                    error!(upstream = ?self, "Could not parse chain id in readiness probe");
+                    return false;
+                }
+            },
+            None => {
+                error!(upstream = ?self, "Chain id response is not a string in readiness probe");
                 return false;
             }
         };
