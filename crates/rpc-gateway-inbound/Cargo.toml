@@ -1,0 +1,27 @@
+[package]
+name = "rpc-gateway-inbound"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+exclude.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+simd-json.workspace = true
+bytes.workspace = true
+ouroboros = "0.18.5"
+
+[dev-dependencies]
+criterion = "0.5.1"
+
+[lints]
+workspace = true
+
+[[bench]]
+name = "inbound_request_bench"
+harness = false
