@@ -5,6 +5,7 @@ members = [
   "crates/rpc-gateway-config",
   "crates/rpc-gateway-core",
   "crates/rpc-gateway-eth",
+  "crates/rpc-gateway-inbound",
   "crates/rpc-gateway-rpc",
   "crates/rpc-gateway-upstream",
 ]
@@ -36,6 +37,7 @@ reqwest = { version = "0.12.15", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["raw_value"] }
 serde_bytes = "0.11.7"
+simd-json = "0.15.1"
 tokio = { version = "1.44.2", features = ["full"] }
 tokio-util = { version = "0.7.15", features = ["rt"] }
 tracing = "0.1"
