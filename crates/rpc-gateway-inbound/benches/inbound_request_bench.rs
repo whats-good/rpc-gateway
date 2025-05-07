@@ -11,6 +11,14 @@ fn generate_payload(id: i64) -> Bytes {
     Bytes::from(p)
 }
 
+fn generate_payload_bytes_vec(id: i64) -> Vec<u8> {
+    let p = format!(
+        r#"{{"jsonrpc":"2.0","id":{},"method":"eth_getBlockByNumber","params":["latest", false]}}"#,
+        id
+    );
+    p.into_bytes()
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Id {
@@ -54,7 +62,7 @@ struct SerdeJsonRawValueRpcCall<'a> {
 }
 
 pub fn benchmark_processing(c: &mut Criterion) {
-    c.bench_function("serde_value", |b| {
+    c.bench_function("serde_value_bytes", |b| {
         b.iter_batched(
             || generate_payload(1), // setup (not timed)
             |payload| serde_json::from_slice::<SerdeValueRpcCall>(&payload).unwrap(),
@@ -62,7 +70,15 @@ pub fn benchmark_processing(c: &mut Criterion) {
         );
     });
 
-    c.bench_function("simd_json_owned", |b| {
+    c.bench_function("serde_value_vec", |b| {
+        b.iter_batched(
+            || generate_payload_bytes_vec(1), // setup (not timed)
+            |payload| serde_json::from_slice::<SerdeValueRpcCall>(&payload).unwrap(),
+            BatchSize::SmallInput, // or BatchSize::PerIteration
+        );
+    });
+
+    c.bench_function("simd_json_owned_bytes", |b| {
         b.iter_batched(
             || generate_payload(1), // setup (not timed)
             |payload| {
@@ -73,7 +89,15 @@ pub fn benchmark_processing(c: &mut Criterion) {
         );
     });
 
-    c.bench_function("serde_json_raw_value", |b| {
+    c.bench_function("simd_json_owned_vec", |b| {
+        b.iter_batched(
+            || generate_payload_bytes_vec(1), // setup (not timed)
+            |mut payload| simd_json::from_slice::<SimdJsonOwnedRpcCall>(&mut payload).unwrap(),
+            BatchSize::SmallInput, // or BatchSize::PerIteration
+        );
+    });
+
+    c.bench_function("serde_json_raw_value_bytes", |b| {
         b.iter_batched(
             || generate_payload(1), // setup (not timed)
             |payload| {
@@ -83,13 +107,32 @@ pub fn benchmark_processing(c: &mut Criterion) {
         );
     });
 
-    c.bench_function("simd_json_serde_value", |b| {
+    c.bench_function("serde_json_raw_value_vec", |b| {
+        b.iter_batched(
+            || generate_payload_bytes_vec(1), // setup (not timed)
+            |mut payload| {
+                let call =
+                    serde_json::from_slice::<SerdeJsonRawValueRpcCall>(&mut payload).unwrap();
+            },
+            BatchSize::SmallInput, // or BatchSize::PerIteration
+        );
+    });
+
+    c.bench_function("simd_json_serde_value_bytes", |b| {
         b.iter_batched(
             || generate_payload(1), // setup (not timed)
             |payload| {
                 let mut bytes = payload.to_vec();
                 simd_json::from_slice::<SimdJsonSerdeValueRpcCall>(&mut bytes).unwrap()
             },
+            BatchSize::SmallInput, // or BatchSize::PerIteration
+        );
+    });
+
+    c.bench_function("simd_json_serde_value_vec", |b| {
+        b.iter_batched(
+            || generate_payload_bytes_vec(1), // setup (not timed)
+            |mut payload| simd_json::from_slice::<SimdJsonSerdeValueRpcCall>(&mut payload).unwrap(),
             BatchSize::SmallInput, // or BatchSize::PerIteration
         );
     });
