@@ -36,6 +36,14 @@ struct SimdJsonOwnedRpcCall {
 }
 
 #[derive(Debug, Deserialize)]
+struct SimdJsonSerdeValueRpcCall {
+    id: Id,
+    method: String,
+    jsonrpc: Option<String>,
+    params: Option<serde_json::value::Value>,
+}
+
+#[derive(Debug, Deserialize)]
 struct SerdeJsonRawValueRpcCall<'a> {
     id: Id,
     method: String,
@@ -70,6 +78,17 @@ pub fn benchmark_processing(c: &mut Criterion) {
             || generate_payload(1), // setup (not timed)
             |payload| {
                 let call = serde_json::from_slice::<SerdeJsonRawValueRpcCall>(&payload).unwrap();
+            },
+            BatchSize::SmallInput, // or BatchSize::PerIteration
+        );
+    });
+
+    c.bench_function("simd_json_serde_value", |b| {
+        b.iter_batched(
+            || generate_payload(1), // setup (not timed)
+            |payload| {
+                let mut bytes = payload.to_vec();
+                simd_json::from_slice::<SimdJsonSerdeValueRpcCall>(&mut bytes).unwrap()
             },
             BatchSize::SmallInput, // or BatchSize::PerIteration
         );
