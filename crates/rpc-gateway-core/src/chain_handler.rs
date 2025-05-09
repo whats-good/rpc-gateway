@@ -25,6 +25,7 @@ const RESPONSE_SOURCE_COALESCED: &str = "coalesced";
 const RESPONSE_SOURCE_CACHED: &str = "cached";
 const RESPONSE_SOURCE_CANNED: &str = "canned";
 const RESPONSE_SOURCE_PRE_UPSTREAM_ERROR: &str = "pre_upstream_error";
+const RESPONSE_SOURCE_UNSUPPORTED: &str = "unsupported";
 
 struct CacheIntent {
     key: String,
@@ -293,8 +294,27 @@ impl ChainHandler {
         })
     }
 
+    #[cold]
+    fn try_unsupported_response(&self, call: &PreservedMethodCall) -> Option<ChainHandlerResponse> {
+        if call.deserialized.method == "eth_newBlockFilter"
+            || call.deserialized.method == "eth_newPendingTransactionFilter"
+        {
+            Some(ChainHandlerResponse {
+                response_source: RESPONSE_SOURCE_UNSUPPORTED,
+                response_result: ResponseResult::Error(RpcError::method_not_found()), // TODO: this should technically be an unsupported method error
+            })
+        } else {
+            None
+        }
+    }
+
     async fn on_request(&self, call: &PreservedMethodCall) -> ChainHandlerResponse {
         // TODO: shouldn't there be an easier way to convert RpcMethodCall to EthRequest?
+
+        if let Some(response) = self.try_unsupported_response(call) {
+            return response;
+        }
+
         let req = serde_json::from_slice::<EthRequest>(&call.raw);
 
         // TODO: add this back

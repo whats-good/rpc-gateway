@@ -23,9 +23,6 @@ pub enum EthRequest {
     #[serde(rename = "web3_clientVersion", with = "empty_params")]
     Web3ClientVersion(()),
 
-    #[serde(rename = "web3_sha3", with = "sequence")]
-    Web3Sha3(Bytes),
-
     #[serde(rename = "eth_chainId", with = "empty_params")]
     EthChainId(()),
 
@@ -43,6 +40,9 @@ pub enum EthRequest {
 
     #[serde(rename = "eth_blockNumber", with = "empty_params")]
     EthBlockNumber(()),
+
+    #[serde(rename = "web3_sha3", with = "sequence")]
+    Web3Sha3(Bytes),
 
     #[serde(rename = "eth_getBalance")]
     EthGetBalance(Address, Option<BlockId>),
@@ -146,16 +146,6 @@ pub enum EthRequest {
     /// Polling method for a filter, which returns an array of logs which occurred since last poll.
     #[serde(rename = "eth_getFilterChanges", with = "sequence")]
     EthGetFilterChanges(String),
-
-    /// Creates a filter in the node, to notify when a new block arrives.
-    /// To check if the state has changed, call `eth_getFilterChanges`.
-    #[serde(rename = "eth_newBlockFilter", with = "empty_params")]
-    EthNewBlockFilter(()),
-
-    /// Creates a filter in the node, to notify when new pending transactions arrive.
-    /// To check if the state has changed, call `eth_getFilterChanges`.
-    #[serde(rename = "eth_newPendingTransactionFilter", with = "empty_params")]
-    EthNewPendingTransactionFilter(()),
 
     /// Returns an array of all logs matching filter with given id.
     #[serde(rename = "eth_getFilterLogs", with = "sequence")]
