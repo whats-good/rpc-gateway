@@ -175,7 +175,15 @@ impl ChainHandler {
         RpcResponse::new(call.deserialized.id, response_result)
     }
 
-    async fn try_canned_response(&self, req: &EthRequest) -> Option<ResponseResult> {
+    async fn try_canned_response(
+        &self,
+        req: &Result<EthRequest, serde_json::Error>,
+    ) -> Option<ResponseResult> {
+        let req = match req {
+            Ok(req) => req,
+            Err(_) => return None,
+        };
+
         // TODO: both for clientVersion and blockNumber, make sure we can respond to actual paramless requests
         if !self.canned_responses_config.enabled {
             return None;
@@ -292,12 +300,7 @@ impl ChainHandler {
         // TODO: add this back
         // self.track_eth_call_requests(&req, project_config);
 
-        let canned_response = match &req {
-            Ok(req) => self.try_canned_response(req).await,
-            Err(_) => None,
-        };
-
-        if let Some(response_result) = canned_response {
+        if let Some(response_result) = self.try_canned_response(&req).await {
             // TODO: may want to cache canned responses if they are expensive to generate
             return ChainHandlerResponse {
                 response_source: RESPONSE_SOURCE_CANNED,
