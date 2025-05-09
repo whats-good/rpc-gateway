@@ -20,11 +20,52 @@ pub struct Params<T: Default> {
 #[serde(tag = "method", content = "params")]
 #[expect(clippy::large_enum_variant)]
 pub enum EthRequest {
-    #[serde(rename = "web3_clientVersion", with = "empty_params")]
-    Web3ClientVersion(()),
+    #[serde(rename = "eth_call")]
+    EthCall(
+        WithOtherFields<TransactionRequest>,
+        #[serde(default)] Option<BlockId>,
+        #[serde(default)] Option<StateOverride>,
+    ),
+
+    #[serde(rename = "eth_getBalance")]
+    EthGetBalance(Address, Option<BlockId>),
+
+    #[serde(rename = "eth_blockNumber", with = "empty_params")]
+    EthBlockNumber(()),
+
+    #[serde(rename = "eth_getLogs", with = "sequence")]
+    EthGetLogs(Filter),
+
+    #[serde(rename = "eth_getTransactionReceipt", with = "sequence")]
+    EthGetTransactionReceipt(B256),
+
+    #[serde(rename = "eth_getBlockByNumber")]
+    EthGetBlockByNumber(
+        #[serde(deserialize_with = "lenient_block_number::lenient_block_number")] BlockNumber,
+        bool,
+    ),
+
+    #[serde(rename = "eth_getCode")]
+    EthGetCodeAt(Address, Option<BlockId>),
+
+    #[serde(rename = "eth_getTransactionCount")]
+    EthGetTransactionCount(Address, Option<BlockId>),
 
     #[serde(rename = "eth_chainId", with = "empty_params")]
     EthChainId(()),
+
+    #[serde(rename = "eth_maxPriorityFeePerGas", with = "empty_params")]
+    EthMaxPriorityFeePerGas(()),
+
+    #[serde(rename = "eth_estimateGas")]
+    EthEstimateGas(
+        WithOtherFields<TransactionRequest>,
+        #[serde(default)] Option<BlockId>,
+        #[serde(default)] Option<StateOverride>,
+    ),
+
+    #[serde(rename = "web3_clientVersion", with = "empty_params")]
+    Web3ClientVersion(()),
 
     #[serde(rename = "eth_networkId", alias = "net_version", with = "empty_params")]
     EthNetworkId(()),
@@ -32,20 +73,11 @@ pub enum EthRequest {
     #[serde(rename = "eth_gasPrice", with = "empty_params")]
     EthGasPrice(()),
 
-    #[serde(rename = "eth_maxPriorityFeePerGas", with = "empty_params")]
-    EthMaxPriorityFeePerGas(()),
-
     #[serde(rename = "eth_blobBaseFee", with = "empty_params")]
     EthBlobBaseFee(()),
 
-    #[serde(rename = "eth_blockNumber", with = "empty_params")]
-    EthBlockNumber(()),
-
     #[serde(rename = "web3_sha3", with = "sequence")]
     Web3Sha3(Bytes),
-
-    #[serde(rename = "eth_getBalance")]
-    EthGetBalance(Address, Option<BlockId>),
 
     #[serde(rename = "eth_getAccount")]
     EthGetAccount(Address, Option<BlockId>),
@@ -55,15 +87,6 @@ pub enum EthRequest {
 
     #[serde(rename = "eth_getBlockByHash")]
     EthGetBlockByHash(B256, bool),
-
-    #[serde(rename = "eth_getBlockByNumber")]
-    EthGetBlockByNumber(
-        #[serde(deserialize_with = "lenient_block_number::lenient_block_number")] BlockNumber,
-        bool,
-    ),
-
-    #[serde(rename = "eth_getTransactionCount")]
-    EthGetTransactionCount(Address, Option<BlockId>),
 
     #[serde(rename = "eth_getBlockTransactionCountByHash", with = "sequence")]
     EthGetTransactionCountByHash(B256),
@@ -83,25 +106,8 @@ pub enum EthRequest {
     )]
     EthGetUnclesCountByNumber(BlockNumber),
 
-    #[serde(rename = "eth_getCode")]
-    EthGetCodeAt(Address, Option<BlockId>),
-
     #[serde(rename = "eth_getProof")]
     EthGetProof(Address, Vec<B256>, Option<BlockId>),
-
-    #[serde(rename = "eth_call")]
-    EthCall(
-        WithOtherFields<TransactionRequest>,
-        #[serde(default)] Option<BlockId>,
-        #[serde(default)] Option<StateOverride>,
-    ),
-
-    #[serde(rename = "eth_estimateGas")]
-    EthEstimateGas(
-        WithOtherFields<TransactionRequest>,
-        #[serde(default)] Option<BlockId>,
-        #[serde(default)] Option<StateOverride>,
-    ),
 
     #[serde(rename = "eth_getTransactionByHash", with = "sequence")]
     EthGetTransactionByHash(TxHash),
@@ -121,9 +127,6 @@ pub enum EthRequest {
     #[serde(rename = "eth_getRawTransactionByBlockNumberAndIndex")]
     EthGetRawTransactionByBlockNumberAndIndex(BlockNumber, Index),
 
-    #[serde(rename = "eth_getTransactionReceipt", with = "sequence")]
-    EthGetTransactionReceipt(B256),
-
     #[serde(rename = "eth_getBlockReceipts", with = "sequence")]
     EthGetBlockReceipts(BlockId),
 
@@ -135,9 +138,6 @@ pub enum EthRequest {
         #[serde(deserialize_with = "lenient_block_number::lenient_block_number")] BlockNumber,
         Index,
     ),
-
-    #[serde(rename = "eth_getLogs", with = "sequence")]
-    EthGetLogs(Filter),
 
     /// Creates a filter object, based on filter options, to notify when the state changes (logs).
     #[serde(rename = "eth_newFilter", with = "sequence")]
