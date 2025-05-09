@@ -185,18 +185,17 @@ impl ChainHandler {
             Err(_) => return None,
         };
 
-        // TODO: both for clientVersion and blockNumber, make sure we can respond to actual paramless requests
         if !self.canned_responses_config.enabled {
             return None;
         }
 
         match req {
-            EthRequest::Web3ClientVersion(_)
+            EthRequest::Web3ClientVersion { .. }
                 if self.canned_responses_config.methods.web3_client_version =>
             {
                 Some(CANNED_RESPONSE_CLIENT_VERSION.clone())
             }
-            EthRequest::EthChainId(_) if self.canned_responses_config.methods.eth_chain_id => {
+            EthRequest::EthChainId { .. } if self.canned_responses_config.methods.eth_chain_id => {
                 Some(ResponseResult::Success(serde_json::json!(format!(
                     "0x{:x}",
                     self.chain_config.chain.id()
@@ -216,7 +215,7 @@ impl ChainHandler {
         let coalescing_key = match &cache_intent {
             Some(cache_intent) => cache_intent.key.clone(),
             None => {
-                let method = call.deserialized.method.clone();
+                let method = call.deserialized.method.clone(); // TODO: should this be Cow instead?
                 let params = serde_json::to_string(&call.deserialized.params).unwrap();
                 format!("{}:{}", method, params)
             }
@@ -282,7 +281,7 @@ impl ChainHandler {
         };
 
         let ttl = cache.get_ttl(&req)?;
-        let key = serde_json::to_string(&req).ok()?;
+        let key = req.get_key();
 
         // TODO: missed oppotrunity: if the request is coalescable, but not cacheable, we'd be forcing the
         // coalescing key compute to use the raw call instead of eth request.

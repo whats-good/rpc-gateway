@@ -3680,6 +3680,7 @@ dependencies = [
  "alloy-rpc-types",
  "alloy-serde",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

@@ -56,74 +56,45 @@ impl TTLManager {
     pub fn get_ttl(&self, req: &EthRequest) -> Option<Duration> {
         let block_time = self.block_time;
         match req {
-            EthRequest::EthNetworkId(_) => Some(ONE_YEAR),
-            EthRequest::EthGasPrice(_) => Some(block_time.clone()), // TODO: make this configurable
-            EthRequest::EthMaxPriorityFeePerGas(_) => Some(block_time.clone()), // TODO: make this configurable
-            EthRequest::EthBlobBaseFee(_) => Some(block_time.clone()), // TODO: make this configurable
-            EthRequest::EthBlockNumber(_) => Some(block_time.clone()), // TODO: make this configurable
-            EthRequest::EthGetBalance(_, block_id) => block_id
+            EthRequest::EthNetworkId { .. } => Some(ONE_YEAR),
+            EthRequest::EthGasPrice { .. } => Some(block_time.clone()), // TODO: make this configurable
+            EthRequest::EthMaxPriorityFeePerGas { .. } => Some(block_time.clone()), // TODO: make this configurable
+            EthRequest::EthBlobBaseFee { .. } => Some(block_time.clone()), // TODO: make this configurable
+            EthRequest::EthBlockNumber { .. } => Some(block_time.clone()), // TODO: make this configurable
+            EthRequest::EthGetBalance { params: p } => p
+                .block_id
                 .and_then(|block_id| self.get_ttl_from_block_id(&block_id))
                 .or(Some(block_time.clone())),
-            EthRequest::EthGetAccount(_, block_id) => block_id
+            EthRequest::EthGetStorageAt { params: p } => p
+                .block_id
                 .and_then(|block_id| self.get_ttl_from_block_id(&block_id))
                 .or(Some(block_time.clone())),
-            EthRequest::EthGetStorageAt(_, _, block_id) => block_id
+            EthRequest::EthGetBlockByHash { .. } => Some(ONE_YEAR),
+            EthRequest::EthGetBlockByNumber { params: p } => {
+                self.get_ttl_from_block_number_or_tag(&p.block_number)
+            }
+            EthRequest::EthGetTransactionCount { params: p } => p
+                .block_id
                 .and_then(|block_id| self.get_ttl_from_block_id(&block_id))
                 .or(Some(block_time.clone())),
-            EthRequest::EthGetBlockByHash(_, _) => Some(ONE_YEAR),
-            EthRequest::EthGetBlockByNumber(block_number_or_tag, _) => {
-                self.get_ttl_from_block_number_or_tag(block_number_or_tag)
-            }
-            EthRequest::EthGetTransactionCount(_, block_id) => block_id
+            EthRequest::EthGetCodeAt { params: p } => p
+                .block_id
                 .and_then(|block_id| self.get_ttl_from_block_id(&block_id))
                 .or(Some(block_time.clone())),
-            EthRequest::EthGetTransactionCountByHash(_) => Some(ONE_YEAR),
-            EthRequest::EthGetTransactionCountByNumber(block_number_or_tag) => {
-                self.get_ttl_from_block_number_or_tag(block_number_or_tag)
-            }
-            EthRequest::EthGetUnclesCountByHash(_) => Some(ONE_YEAR),
-            EthRequest::EthGetUnclesCountByNumber(block_number_or_tag) => {
-                self.get_ttl_from_block_number_or_tag(block_number_or_tag)
-            }
-            EthRequest::EthGetCodeAt(_, block_id) => block_id
+            EthRequest::EthCall { params: p } => p
+                .block_id
                 .and_then(|block_id| self.get_ttl_from_block_id(&block_id))
                 .or(Some(block_time.clone())),
-            EthRequest::EthGetProof(_, _, block_id) => block_id
+            EthRequest::EthEstimateGas { params: p } => p
+                .block_id
                 .and_then(|block_id| self.get_ttl_from_block_id(&block_id))
                 .or(Some(block_time.clone())),
-            EthRequest::EthCall(_, block_id, _) => block_id
-                .and_then(|block_id| self.get_ttl_from_block_id(&block_id))
-                .or(Some(block_time.clone())),
-            EthRequest::EthEstimateGas(_, block_id, _) => block_id
-                .and_then(|block_id| self.get_ttl_from_block_id(&block_id))
-                .or(Some(block_time.clone())),
-            EthRequest::EthGetTransactionByHash(_) => Some(ONE_YEAR),
-            EthRequest::EthGetTransactionByBlockHashAndIndex(_, _) => Some(ONE_YEAR),
-            EthRequest::EthGetTransactionByBlockNumberAndIndex(block_number_or_tag, _) => {
-                self.get_ttl_from_block_number_or_tag(block_number_or_tag)
-            }
-            EthRequest::EthGetRawTransactionByHash(_) => Some(ONE_YEAR),
-            EthRequest::EthGetRawTransactionByBlockHashAndIndex(_, _) => Some(ONE_YEAR),
-            EthRequest::EthGetRawTransactionByBlockNumberAndIndex(block_number_or_tag, _) => {
-                self.get_ttl_from_block_number_or_tag(block_number_or_tag)
-            }
-            EthRequest::EthGetTransactionReceipt(_) => {
-                // TODO: this actually depends on the transaction itself. sometimes the ttl needs to be aware of the data we're writing.
-                // We're currently re-using ttls to determine if we should cache the response - or whether the request could even exist in the cache in the first place. So we need to separate the two, and actually take a look at the data we're writing while determining the final ttl.
-                Some(block_time.clone())
-            }
-            EthRequest::EthGetBlockReceipts(block_id) => self.get_ttl_from_block_id(block_id),
-            EthRequest::EthGetUncleByBlockHashAndIndex(_, _) => Some(ONE_YEAR),
-            EthRequest::EthGetUncleByBlockNumberAndIndex(block_number_or_tag, _) => {
-                self.get_ttl_from_block_number_or_tag(block_number_or_tag)
-            }
-            EthRequest::EthGetLogs(_) => Some(block_time.clone()),
-            EthRequest::EthGetFilterChanges(_) => Some(block_time.clone()),
-            EthRequest::EthGetFilterLogs(_) => Some(block_time.clone()),
-            EthRequest::EthFeeHistory(_, block_number_or_tag, _) => {
-                self.get_ttl_from_block_number_or_tag(block_number_or_tag)
-            }
-            _ => None,
+            EthRequest::EthGetTransactionReceipt { params: p } => Some(block_time.clone()),
+            EthRequest::EthGetLogs { .. } => Some(block_time.clone()), // TODO: this should be based on the filter.
+
+            // These are canned, so we exclude them here.
+            EthRequest::EthChainId { .. } => None,
+            EthRequest::Web3ClientVersion { .. } => None,
         }
     }
 
