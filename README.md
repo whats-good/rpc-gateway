@@ -202,7 +202,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 This project wouldn't be possible without the amazing work of the following projects:
 
 - [Alloy](https://github.com/alloy-rs/alloy)
-- [Foundry](https://github.com/foundry-rs/foundry)application development
+- [Foundry](https://github.com/foundry-rs/foundry)
 
 ## License
 
